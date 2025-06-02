@@ -19,7 +19,7 @@ Example:
   (wrap-io
     (lisp :a (str)
       (cl:print str)))"
-  `(IO% (fn () ,body)))
+  `(IO% (fn () ,@body)))
 
 (coalton-toplevel
   ;;

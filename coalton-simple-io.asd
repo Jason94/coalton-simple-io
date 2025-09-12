@@ -5,7 +5,7 @@
   :maintainer "Jason Walker"
   :mailto "Jason0@pm.me"
   :license "MIT"
-  :depends-on ("coalton")
+  :depends-on ("coalton" "named-readtables")
   :components ((:module "src"
                 :components
                 ((:file "io")
@@ -18,9 +18,11 @@
   :author "Jason Walker"
   :license "MIT"
   :depends-on ("coalton-simple-io"
-               "rove")
+               "coalton/testing"
+               "fiasco")
   :components ((:module "tests"
                 :components
-                ((:file "main"))))
+                ((:file "main")
+                 (:file "package"))))
   :description "Test system for coalton-simple-io"
-  :perform (test-op (op c) (symbol-call :rove :run c)))
+  :perform (test-op (op c) (symbol-call '#:coalton-simple-io/tests '#:run-tests)))

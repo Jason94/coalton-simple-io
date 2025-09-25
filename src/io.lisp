@@ -4,10 +4,19 @@
    #:coalton
    #:coalton-prelude
    #:coalton-library/functions)
+  (:local-nicknames
+   (:c #:coalton-library/cell))
   (:export
    #:wrap-io
    #:IO
-   #:run!))
+   #:run!
+
+   #:IORef
+   #:new-io-ref
+   #:read
+   #:write
+   #:modify
+   ))
 (in-package :simple-io/io)
 
 (named-readtables:in-readtable coalton:coalton)
@@ -38,8 +47,8 @@ Example:
     (inline)
     (define (map fb->c (IO% funit->b))
       (IO%
-        (fn ()
-          (fb->c (funit->b))))))
+       (fn ()
+         (fb->c (funit->b))))))
 
   (define-instance (Applicative IO)
     (inline)
@@ -47,12 +56,36 @@ Example:
     (inline)
     (define (liftA2 fa->b->c (IO% f->a) (IO% f->b))
       (IO%
-        (fn ()
-          (fa->b->c (f->a) (f->b))))))
+       (fn ()
+         (fa->b->c (f->a) (f->b))))))
 
   (define-instance (Monad IO)
     (inline)
     (define (>>= (IO% f->a) fa->io-b)
       (IO%
-        (fn ()
-          (run! (fa->io-b (f->a))))))))
+       (fn ()
+         (run! (fa->io-b (f->a))))))))
+
+(coalton-toplevel
+  (repr :transparent)
+  (define-type (IORef :a)
+    (IORef% (Cell :a)))
+
+  (declare new-io-ref (:a -> IO (IORef :a)))
+  (define (new-io-ref val)
+    (wrap-io (IORef% (c:new val))))
+
+  (declare read (IORef :a -> IO :a))
+  (define (read (IORef% cel))
+    (wrap-io (c:read cel)))
+
+  (declare write (IORef :a -> :a -> IO :a))
+  (define (write (IORef% cel) val)
+    "Set the value in an IORef and return the old value."
+    (wrap-io
+      (c:swap! cel val)))
+
+  (declare modify (IORef :a -> (:a -> :a) -> IO :a))
+  (define (modify (IORef% cel) f)
+    "Modify the value in an IORef and return the old value."
+    (wrap-io (c:update-swap! f cel))))

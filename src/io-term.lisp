@@ -6,7 +6,8 @@
    #:coalton-library/functions
    #:simple-io/io)
   (:export
-   #:write-line))
+   #:write-line
+   #:read-line))
 (in-package :simple-io/term)
 
 (named-readtables:in-readtable coalton:coalton)
@@ -19,6 +20,11 @@
       (lisp :a (str)
         (cl:format cl:t "~a~%" str))
       Unit))
+
+  (declare read-line (IO String))
+  (define read-line
+    (wrap-io (lisp :a ()
+               (cl:read-line))))
 
   ;; (declare sleep (Integer -> IO Unit))
   ;; (define (sleep s)

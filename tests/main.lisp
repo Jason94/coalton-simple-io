@@ -7,7 +7,9 @@
 
 ;; NOTE: To run this test file, execute `(asdf:test-system :coalton-simple-io)' in your Lisp.
 
-(coalton-fiasco-init #:coalton-simple-io/fiasco-test-package)
+(fiasco:define-test-package #:coalton-simple-io/tests/main-fiasco)
+
+(coalton-fiasco-init #:coalton-simple-io/tests/main-fiasco)
 
 (coalton-toplevel
   (declare io-const (:a -> IO :a))

@@ -12,5 +12,6 @@
 
 (cl:defun run-tests ()
   (fiasco:run-package-tests
-   :packages '(#:coalton-simple-io/fiasco-test-package)
+   :packages '(#:coalton-simple-io/tests/main-fiasco)
    :interactive cl:t))
+

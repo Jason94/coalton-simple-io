@@ -6,6 +6,7 @@
    #:coalton-library/functions
    #:simple-io/io)
   (:export
+   #:MonadIoTerm
    #:write-line
    #:read-line))
 (in-package :simple-io/term)
@@ -13,23 +14,24 @@
 (named-readtables:in-readtable coalton:coalton)
 
 (coalton-toplevel
-  (declare write-line ((Into :a String) => :a -> IO Unit))
-  (define (write-line obj)
+  (define-class (Monad :m => MonadIoTerm :m)
+    (write-line (Into :a String => :a -> :m Unit))
+    (read-line (:m String)))
+
+  (declare write-line% ((Into :a String) => :a -> IO Unit))
+  (define (write-line% obj)
     (let str = (the String (into obj)))
     (wrap-io
       (lisp :a (str)
         (cl:format cl:t "~a~%" str))
       Unit))
 
-  (declare read-line (IO String))
-  (define read-line
+  (declare read-line% (IO String))
+  (define read-line%
     (wrap-io (lisp :a ()
                (cl:read-line))))
 
-  ;; (declare sleep (Integer -> IO Unit))
-  ;; (define (sleep s)
-  ;;   (wrap-io
-  ;;         (lisp :a (s)
-  ;;           (cl:sleep s))
-  ;;         Unit))
+  (define-instance (MonadIoTerm IO)
+    (define write-line write-line%)
+    (define read-line read-line%))
   )

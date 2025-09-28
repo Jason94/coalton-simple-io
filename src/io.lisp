@@ -4,12 +4,19 @@
    #:coalton
    #:coalton-prelude
    #:coalton-library/functions)
+  (:import-from #:coalton-library/experimental/loops
+   #:dolist)
   (:local-nicknames
+   (:it #:coalton-library/iterator)
    (:c #:coalton-library/cell))
   (:export
    #:wrap-io
    #:IO
    #:run!
+   #:map-into-io
+   #:do-map-into-io
+   #:foreach-io
+   #:do-foreach-io
 
    #:IORef
    #:new-io-ref
@@ -43,6 +50,27 @@ Example:
   (define (run! (IO% funit->a))
     (funit->a))
 
+  (inline)
+  (declare map-into-io (it:IntoIterator :i :a => :i -> (:a -> IO :b) -> IO (List :b)))
+  (define (map-into-io itr a->iob)
+    "Efficiently perform an IO operation for each element of an iterator and
+return the results."
+    (IO%
+     (fn ()
+       (let results = (c:new (make-list)))
+       (for a in (it:into-iter itr)
+         (c:push! results (run! (a->iob a))))
+       (reverse (c:read results)))))
+
+  (inline)
+  (declare foreach-io (it:IntoIterator :i :a => :i -> (:a -> IO :b) -> IO Unit))
+  (define (foreach-io itr a->iob)
+    "Efficiently perform an IO operation for each element of an iterator."
+    (IO%
+     (fn ()
+       (for a in (it:into-iter itr)
+         (run! (a->iob a))))))
+
   (define-instance (Functor IO)
     (inline)
     (define (map fb->c (IO% funit->b))
@@ -65,6 +93,18 @@ Example:
       (IO%
        (fn ()
          (run! (fa->io-b (f->a))))))))
+
+(cl:defmacro do-map-into-io ((var lst) cl:&body body)
+  `(map-into-io ,lst
+     (fn (,var)
+       (do
+        ,@body))))
+
+(cl:defmacro do-foreach-io ((var lst) cl:&body body)
+  `(foreach-io ,lst
+     (fn (,var)
+       (do
+        ,@body))))
 
 (coalton-toplevel
   (repr :transparent)

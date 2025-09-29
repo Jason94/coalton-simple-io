@@ -9,6 +9,7 @@
   :components ((:module "src"
                 :components
                 ((:file "io")
+                 (:file "io-mut")
                  (:file "io-term")
                  (:file "io-random")
                  (:file "io-unique"))))

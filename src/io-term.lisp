@@ -5,6 +5,10 @@
    #:coalton-prelude
    #:coalton-library/functions
    #:simple-io/io)
+  (:import-from #:coalton-library/monad/statet
+   #:StateT)
+  (:import-from #:coalton-library/monad/environment
+   #:EnvT)
   (:export
    #:MonadIoTerm
    #:write-line
@@ -34,4 +38,15 @@
   (define-instance (MonadIoTerm IO)
     (define write-line write-line%)
     (define read-line read-line%))
-  )
+
+  ;;
+  ;; Std. Library Transformer Instances
+  ;;
+
+  (define-instance ((MonadIoTerm :m) => MonadIoTerm (StateT :s :m))
+    (define write-line (compose lift write-line))
+    (define read-line (lift read-line)))
+
+  (define-instance ((MonadIoTerm :m) => MonadIoTerm (EnvT :e :m))
+    (define write-line (compose lift write-line))
+    (define read-line (lift read-line))))

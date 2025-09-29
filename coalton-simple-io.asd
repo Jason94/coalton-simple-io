@@ -8,7 +8,8 @@
   :depends-on ("coalton" "named-readtables")
   :components ((:module "src"
                 :components
-                ((:file "io")
+                ((:file "utils")
+                 (:file "io")
                  (:file "io-mut")
                  (:file "io-term")
                  (:file "io-random")

@@ -4,7 +4,10 @@
    #:coalton
    #:coalton-prelude
    #:simple-io/io)
-  (:local-nicknames)
+  (:local-nicknames
+   (:c #:coalton-library/cell)
+   (:st #:coalton-library/monad/statet)
+   (:env #:coalton-library/monad/environment))
   (:export
    #:MonadIoUnique
    #:Unique
@@ -27,15 +30,12 @@
     (define (<=> (Unique% a) (Unique% b))
       (<=> a b)))
 
-  ;; NOTE: If the heuristic inliner decides to inline this, it'll break.
-  (declare counter% (IORef Integer))
-  (define counter% (run! (new-io-ref 0)))
+  (declare counter% (c:Cell Integer))
+  (define counter% (c:new 0))
 
   (declare new-unique% (IO Unique))
   (define new-unique%
-    (do
-     (x <- (modify counter% (+ 1)))
-     (pure (Unique% x))))
+    (wrap-io (Unique% (c:increment! counter%))))
 
   (inline)
   (declare to-int (Unique -> Integer))
@@ -44,4 +44,13 @@
 
   (define-instance (MonadIoUnique IO)
     (define new-unique new-unique%))
-  )
+
+  ;;
+  ;; Std. Library Transformer Instances
+  ;;
+
+  (define-instance ((MonadIoUnique :m) => MonadIoUnique (st:StateT :s :m))
+    (define new-unique (lift new-unique)))
+
+  (define-instance ((MonadIoUnique :m) => MonadIoUnique (env:EnvT :e :m))
+    (define new-unique (lift new-unique))))

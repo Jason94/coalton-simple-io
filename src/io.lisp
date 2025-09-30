@@ -3,10 +3,13 @@
   (:use
    #:coalton
    #:coalton-prelude
-   #:coalton-library/functions)
+   #:coalton-library/functions
+   #:simple-io/utils)
   (:import-from #:coalton-library/experimental/loops
    #:dolist)
   (:local-nicknames
+   (:st #:coalton-library/monad/statet)
+   (:env #:coalton-library/monad/environment)
    (:it #:coalton-library/iterator)
    (:c #:coalton-library/cell))
   (:export
@@ -32,6 +35,11 @@ Example:
   `(IO% (fn () ,@body)))
 
 (coalton-toplevel
+
+  (define-class (Monad :m => MonadIo :m)
+    (map-into-io (it:IntoIterator :i :a => :i -> (:a -> IO :b) -> :m (List :b)))
+    (foreach-io (it:IntoIterator :i :a => :i -> (:a -> IO :b) -> :m Unit)))
+
   ;;
   ;; IO Monad
   ;;
@@ -45,8 +53,8 @@ Example:
     (funit->a))
 
   (inline)
-  (declare map-into-io (it:IntoIterator :i :a => :i -> (:a -> IO :b) -> IO (List :b)))
-  (define (map-into-io itr a->iob)
+  (declare map-into-io% (it:IntoIterator :i :a => :i -> (:a -> IO :b) -> IO (List :b)))
+  (define (map-into-io% itr a->iob)
     "Efficiently perform an IO operation for each element of an iterator and
 return the results."
     (IO%
@@ -57,8 +65,8 @@ return the results."
        (reverse (c:read results)))))
 
   (inline)
-  (declare foreach-io (it:IntoIterator :i :a => :i -> (:a -> IO :b) -> IO Unit))
-  (define (foreach-io itr a->iob)
+  (declare foreach-io% (it:IntoIterator :i :a => :i -> (:a -> IO :b) -> IO Unit))
+  (define (foreach-io% itr a->iob)
     "Efficiently perform an IO operation for each element of an iterator."
     (IO%
      (fn ()
@@ -86,7 +94,24 @@ return the results."
     (define (>>= (IO% f->a) fa->io-b)
       (IO%
        (fn ()
-         (run! (fa->io-b (f->a))))))))
+         (run! (fa->io-b (f->a)))))))
+
+  (define-instance (MonadIo IO)
+    (define map-into-io map-into-io%)
+    (define foreach-io foreach-io%))
+
+  ;;
+  ;; Std. Library Transformer Instances
+  ;;
+
+  (define-instance (MonadIo :m => MonadIo (st:StateT :s :m))
+    (define map-into-io (compose2 lift map-into-io))
+    (define foreach-io (compose2 lift foreach-io)))
+
+  (define-instance (MonadIo :m => MonadIo (env:EnvT :env :m))
+    (define map-into-io (compose2 lift map-into-io))
+    (define foreach-io (compose2 lift foreach-io)))
+  )
 
 ;;
 ;; Syntactic Sugar Macros

@@ -11,6 +11,7 @@
    #:EnvT)
   (:export
    #:MonadIoTerm
+   #:write
    #:write-line
    #:read-line))
 (in-package :simple-io/term)
@@ -19,8 +20,17 @@
 
 (coalton-toplevel
   (define-class (Monad :m => MonadIoTerm :m)
+    (write (Into :a String => :a -> :m Unit))
     (write-line (Into :a String => :a -> :m Unit))
     (read-line (:m String)))
+
+  (declare write% (Into :a String => :a -> IO Unit))
+  (define (write% obj)
+    (let str = (the String (into obj)))
+    (wrap-io
+      (lisp :a (str)
+        (cl:format cl:t "~a" str))
+      Unit))
 
   (declare write-line% ((Into :a String) => :a -> IO Unit))
   (define (write-line% obj)
@@ -36,6 +46,7 @@
                (cl:read-line))))
 
   (define-instance (MonadIoTerm IO)
+    (define write write%)
     (define write-line write-line%)
     (define read-line read-line%))
 
@@ -43,10 +54,12 @@
   ;; Std. Library Transformer Instances
   ;;
 
-  (define-instance ((MonadIoTerm :m) => MonadIoTerm (StateT :s :m))
+  (define-instance (MonadIoTerm :m => MonadIoTerm (StateT :s :m))
+    (define write (compose lift write))
     (define write-line (compose lift write-line))
     (define read-line (lift read-line)))
 
-  (define-instance ((MonadIoTerm :m) => MonadIoTerm (EnvT :e :m))
+  (define-instance (MonadIoTerm :m => MonadIoTerm (EnvT :e :m))
+    (define write (compose lift write))
     (define write-line (compose lift write-line))
     (define read-line (lift read-line))))

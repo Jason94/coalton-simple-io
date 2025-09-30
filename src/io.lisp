@@ -16,6 +16,8 @@
    #:wrap-io
    #:IO
    #:run!
+
+   #:MonadIo
    #:map-into-io
    #:do-map-into-io
    #:foreach-io

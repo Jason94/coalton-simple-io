@@ -18,6 +18,7 @@
    #:run!
 
    #:MonadIo
+   #:derive-monad-io
    #:map-into-io
    #:do-map-into-io
    #:foreach-io
@@ -100,19 +101,33 @@ return the results."
 
   (define-instance (MonadIo IO)
     (define map-into-io map-into-io%)
-    (define foreach-io foreach-io%))
+    (define foreach-io foreach-io%)))
+
+(cl:defmacro derive-monad-io (monadT-form)
+  "Automatically derive an instance of MonadIo for a monad transformer.
+
+Example:
+  (derive-monad-io (st:StateT :s :m))"
+  `(define-instance (MonadIo :m => MonadIo ,monadT-form)
+     (define map-into-io (compose2 lift map-into-io))
+     (define foreach-io (compose2 lift foreach-io))))
+
+(coalton-toplevel
 
   ;;
   ;; Std. Library Transformer Instances
   ;;
 
-  (define-instance (MonadIo :m => MonadIo (st:StateT :s :m))
-    (define map-into-io (compose2 lift map-into-io))
-    (define foreach-io (compose2 lift foreach-io)))
+  (derive-monad-io (st:StateT :s :m))
+  (derive-monad-io (env:EnvT :env :m))
 
-  (define-instance (MonadIo :m => MonadIo (env:EnvT :env :m))
-    (define map-into-io (compose2 lift map-into-io))
-    (define foreach-io (compose2 lift foreach-io)))
+  ;; (define-instance (MonadIo :m => MonadIo (st:StateT :s :m))
+  ;;   (define map-into-io (compose2 lift map-into-io))
+  ;;   (define foreach-io (compose2 lift foreach-io)))
+
+  ;; (define-instance (MonadIo :m => MonadIo (env:EnvT :env :m))
+  ;;   (define map-into-io (compose2 lift map-into-io))
+  ;;   (define foreach-io (compose2 lift foreach-io)))
   )
 
 ;;

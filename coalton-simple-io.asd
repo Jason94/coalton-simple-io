@@ -13,7 +13,9 @@
                  (:file "io-mut")
                  (:file "io-term")
                  (:file "io-random")
-                 (:file "io-unique"))))
+                 (:file "io-unique")
+                 (:file "io-file")
+                 )))
   :description "Simple IO monad for Coalton."
   :long-description "Implements a *very* basic implementation of an IO monad for coalton and provides a few simple IO operations, such as console I/O."
   :in-order-to ((test-op (test-op "coalton-simple-io/tests"))))

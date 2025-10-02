@@ -11,6 +11,8 @@
    #:EnvT)
   (:export
    #:MonadIoTerm
+   #:derive-monad-io-term
+
    #:write
    #:write-line
    #:read-line))
@@ -48,18 +50,22 @@
   (define-instance (MonadIoTerm IO)
     (define write write%)
     (define write-line write-line%)
-    (define read-line read-line%))
+    (define read-line read-line%)))
 
-  ;;
-  ;; Std. Library Transformer Instances
-  ;;
+(cl:defmacro derive-monad-io-term (monadT-form)
+  "Automatically derive an instance of MonadIoTerm for a monad transformer.
 
-  (define-instance (MonadIoTerm :m => MonadIoTerm (StateT :s :m))
-    (define write (compose lift write))
-    (define write-line (compose lift write-line))
-    (define read-line (lift read-line)))
+Example:
+  (derive-monad-io-term (st:StateT :s :m))"
+  `(define-instance (MonadIoTerm :m => MonadIoTerm ,monadT-form)
+     (define write (compose lift write))
+     (define write-line (compose lift write-line))
+     (define read-line (lift read-line))))
 
-  (define-instance (MonadIoTerm :m => MonadIoTerm (EnvT :e :m))
-    (define write (compose lift write))
-    (define write-line (compose lift write-line))
-    (define read-line (lift read-line))))
+;;
+;; Std. Library Transformer Instances
+;;
+
+(coalton-toplevel
+  (derive-monad-io-term (StateT :s :m))
+  (derive-monad-io-term (EnvT :e :m)))

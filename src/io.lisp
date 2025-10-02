@@ -120,14 +120,6 @@ Example:
 
   (derive-monad-io (st:StateT :s :m))
   (derive-monad-io (env:EnvT :env :m))
-
-  ;; (define-instance (MonadIo :m => MonadIo (st:StateT :s :m))
-  ;;   (define map-into-io (compose2 lift map-into-io))
-  ;;   (define foreach-io (compose2 lift foreach-io)))
-
-  ;; (define-instance (MonadIo :m => MonadIo (env:EnvT :env :m))
-  ;;   (define map-into-io (compose2 lift map-into-io))
-  ;;   (define foreach-io (compose2 lift foreach-io)))
   )
 
 ;;
@@ -140,8 +132,8 @@ Example:
        (do
         ,@body))))
 
-(cl:defmacro do-foreach-io ((var lst) cl:&body body)
-  `(foreach-io ,lst
+(cl:defmacro do-foreach-io ((var into-itr) cl:&body body)
+  `(foreach-io ,into-itr
      (fn (,var)
        (do
         ,@body))))

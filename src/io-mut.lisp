@@ -9,6 +9,7 @@
   (:import-from #:coalton-library/experimental/loops
    #:dolist)
   (:local-nicknames
+   (:at #:simple-io/atomics_)
    (:it #:coalton-library/iterator)
    (:c #:coalton-library/cell)
    (:st #:coalton-library/monad/statet)
@@ -36,20 +37,24 @@
     (write (IORef :a -> :a -> :m :a))
     (modify (IORef :a -> (:a -> :a) -> :m :a)))
 
+  (inline)
   (declare new-io-ref% (:a -> IO (IORef :a)))
   (define (new-io-ref% val)
     (wrap-io (IORef% (c:new val))))
 
+  (inline)
   (declare read% (IORef :a -> IO :a))
   (define (read% (IORef% cel))
     (wrap-io (c:read cel)))
 
+  (inline)
   (declare write% (IORef :a -> :a -> IO :a))
   (define (write% (IORef% cel) val)
     "Set the value in an IORef and return the old value."
     (wrap-io
       (c:swap! cel val)))
 
+  (inline)
   (declare modify% (IORef :a -> (:a -> :a) -> IO :a))
   (define (modify% (IORef% cel) f)
     "Modify the value in an IORef and return the old value."
@@ -81,3 +86,4 @@ Example:
 
   (derive-monad-io-ref :m (st:StateT :s :m))
   (derive-monad-io-ref :m (env:EnvT :e :m)))
+

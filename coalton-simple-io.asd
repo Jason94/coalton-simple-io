@@ -5,13 +5,15 @@
   :maintainer "Jason Walker"
   :mailto "Jason0@pm.me"
   :license "MIT"
-  :depends-on ("coalton" "named-readtables")
+  :depends-on ("coalton" "named-readtables" "atomics" "coalton-threads")
   :components ((:module "src"
                 :serial t
                 :components
                 ((:file "utils")
+                 (:file "atomics")
                  (:file "io")
                  (:file "io-mut")
+                 (:file "io-atomic")
                  (:file "io-term")
                  (:file "io-random")
                  (:file "io-unique")

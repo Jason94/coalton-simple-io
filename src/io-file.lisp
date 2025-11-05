@@ -61,12 +61,12 @@
 ;;; CL Macros
 ;;; ------------------------------------------------------------
 
-(cl:defmacro derive-monad-io-file (monadT-form)
+(cl:defmacro derive-monad-io-file (monad-param monadT-form)
   "Derive a `MonadIoFile` instance for MONADT-FORM by lifting into the base instance.
 
 Example:
-  (derive-monad-io-file (st:StateT :s :m))"
-  `(define-instance (MonadIoFile :m => MonadIoFile ,monadT-form)
+  (derive-monad-io-file :m (st:StateT :s :m))"
+  `(define-instance (MonadIoFile ,monad-param => MonadIoFile ,monadT-form)
      (define open (compose lift open))
      (define close (compose lift close))
      (define abort (compose lift abort))
@@ -303,5 +303,5 @@ Usage:
     (define set-file-position set-file-position%))
 
   ;; Derive transformer instances via the macro (avoid duplication)
-  (derive-monad-io-file (st:StateT :s :m))
-  (derive-monad-io-file (env:EnvT :e :m)))
+  (derive-monad-io-file :m (st:StateT :s :m))
+  (derive-monad-io-file :m (env:EnvT :e :m)))

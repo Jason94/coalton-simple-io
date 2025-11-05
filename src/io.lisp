@@ -103,12 +103,12 @@ return the results."
     (define map-into-io map-into-io%)
     (define foreach-io foreach-io%)))
 
-(cl:defmacro derive-monad-io (monadT-form)
+(cl:defmacro derive-monad-io (monad-param monadT-form)
   "Automatically derive an instance of MonadIo for a monad transformer.
 
 Example:
-  (derive-monad-io (st:StateT :s :m))"
-  `(define-instance (MonadIo :m => MonadIo ,monadT-form)
+  (derive-monad-io :m (st:StateT :s :m))"
+  `(define-instance (MonadIo ,monad-param => MonadIo ,monadT-form)
      (define map-into-io (compose2 lift map-into-io))
      (define foreach-io (compose2 lift foreach-io))))
 
@@ -118,8 +118,8 @@ Example:
   ;; Std. Library Transformer Instances
   ;;
 
-  (derive-monad-io (st:StateT :s :m))
-  (derive-monad-io (env:EnvT :env :m))
+  (derive-monad-io :m (st:StateT :s :m))
+  (derive-monad-io :m (env:EnvT :env :m))
   )
 
 ;;

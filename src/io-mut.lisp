@@ -60,19 +60,24 @@
     (define read read%)
     (define write write%)
     (define modify modify%))
+  )
+
+(cl:defmacro derive-monad-io-ref (monad-param monadT-form)
+  "Automatically derive an instance of MonadIoRef for a monad transformer.
+
+Example:
+  (derive-monad-io-ref :m (st:StateT :s :m))"
+  `(define-instance (MonadIoRef ,monad-param => MonadIoRef ,monadT-form)
+     (define new-io-ref (compose lift new-io-ref))
+     (define read (compose lift read))
+     (define write (compose2 lift write))
+     (define modify (compose2 lift modify))))
+
+(coalton-toplevel
 
   ;;
   ;; Std. Library Transformer Instances
   ;;
 
-  (define-instance ((MonadIoRef :m) => MonadIoRef (st:StateT :s :m))
-    (define new-io-ref (compose lift new-io-ref))
-    (define read (compose lift read))
-    (define write (compose2 lift write))
-    (define modify (compose2 lift modify)))
-
-  (define-instance ((MonadIoRef :m) => MonadIoRef (env:EnvT :e :m))
-    (define new-io-ref (compose lift new-io-ref))
-    (define read (compose lift read))
-    (define write (compose2 lift write))
-    (define modify (compose2 lift modify))))
+  (derive-monad-io-ref :m (st:StateT :s :m))
+  (derive-monad-io-ref :m (env:EnvT :e :m)))

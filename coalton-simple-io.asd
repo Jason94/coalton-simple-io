@@ -7,6 +7,7 @@
   :license "MIT"
   :depends-on ("coalton" "named-readtables")
   :components ((:module "src"
+                :serial t
                 :components
                 ((:file "utils")
                  (:file "io")
@@ -15,6 +16,7 @@
                  (:file "io-random")
                  (:file "io-unique")
                  (:file "io-file")
+                 (:file "stubs/term")
                  )))
   :description "Simple IO monad for Coalton."
   :long-description "Implements a *very* basic implementation of an IO monad for coalton and provides a few simple IO operations, such as console I/O."

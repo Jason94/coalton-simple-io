@@ -29,8 +29,13 @@
     (IoThread% (t:Thread Unit)))
 
   (define-class (Monad :m => MonadIoThread :m)
-    (fork (IO :a -> :m IoThread))
-    (sleep (UFix -> :m Unit)))
+    (fork
+     "Spawn a new thread, which starts running immediately.
+Returns the handle to the thread."
+     (IO :a -> :m IoThread))
+    (sleep
+     "Sleep the current thread for MSECS milliseconds."
+     (UFix -> :m Unit)))
 
   (inline)
   (declare fork% (IO :a -> IO IoThread))
@@ -42,10 +47,10 @@
 
   (inline)
   (declare sleep% (UFix -> IO Unit))
-  (define (sleep% secs)
+  (define (sleep% msecs)
     (wrap-io
-      (lisp :a (secs)
-        (cl:sleep secs))
+      (lisp :a (msecs)
+        (cl:sleep (cl:/ msecs 1000)))
       Unit))
 
   (define-instance (MonadIoThread IO)

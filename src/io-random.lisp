@@ -34,7 +34,7 @@
   (define-type RandomState)
 
   ;;
-  ;; IO-backed primitives (%-suffixed)
+  ;; IO Implementation
   ;;
 
   (declare make-random-state% (IO RandomState))
@@ -70,7 +70,7 @@
                (cl:random limit))))
 
   ;;
-  ;; Class + instances (generalized API)
+  ;; MonadIoRandom Interface
   ;;
 
   (define-class (Monad :m => MonadIoRandom :m)

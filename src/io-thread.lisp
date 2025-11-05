@@ -15,6 +15,7 @@
    #:MonadIoThread
    #:derive-monad-io-thread
    #:fork
+   #:do-fork
    #:sleep
    ))
 (in-package :simple-io/thread)
@@ -70,3 +71,8 @@ Example:
 
   (derive-monad-io-thread :m (st:StateT :s :m))
   (derive-monad-io-thread :m (env:EnvT :e :m)))
+
+(cl:defmacro do-fork (cl:&body body)
+  `(fork
+    (do
+     ,@body)))

@@ -18,6 +18,7 @@
                  (:file "io-random")
                  (:file "io-unique")
                  (:file "io-file")
+                 (:file "io-thread")
                  (:file "stubs/term")
                  )))
   :description "Simple IO monad for Coalton."

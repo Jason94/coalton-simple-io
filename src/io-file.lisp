@@ -13,11 +13,13 @@
    (:st   #:coalton-library/monad/statet)
    (:env  #:coalton-library/monad/environment))
   (:export
-   ;; Class + derive helper
    #:MonadIoFile
    #:derive-monad-io-file
 
-   ;; High-level convenience (IO-lifted)
+   #:exists?
+   #:file-exists?
+   #:directory-exists?
+
    #:open
    #:close
    #:abort
@@ -25,7 +27,6 @@
    #:with-temp-file
    #:with-temp-directory
 
-   ;; Path and directory helpers
    #:copy
    #:create-directory
    #:delete-file
@@ -33,15 +34,14 @@
    #:remove-directory-recursive
    #:system-relative-pathname
 
-   ;; Text helpers
    #:read-file-to-string
    #:read-file-lines
    #:write-string
    #:write-line
    #:read-char
+   #:read-line
    #:write-char
 
-   ;; Vector helpers
    #:read-file-to-vector
    #:read-vector
    #:write-vector
@@ -49,7 +49,6 @@
    #:append-to-file
    #:set-file-position
 
-   ;; Do-notation convenience macros
    #:do-with-open-file
    #:do-with-temp-file
    #:do-with-temp-directory))
@@ -67,6 +66,10 @@
 Example:
   (derive-monad-io-file :m (st:StateT :s :m))"
   `(define-instance (MonadIoFile ,monad-param => MonadIoFile ,monadT-form)
+     (define exists? (compose lift exists?))
+     (define file-exists? (compose lift file-exists?))
+     (define directory-exists? (compose lift directory-exists?))
+
      (define open (compose lift open))
      (define close (compose lift close))
      (define abort (compose lift abort))
@@ -86,6 +89,7 @@ Example:
      (define read-file-lines (compose lift read-file-lines))
 
      (define read-char (compose lift read-char))
+     (define read-line (compose lift read-line))
      (define write-char (compose2 lift write-char))
      (define write-line (compose2 lift write-line))
      (define write-string (compose2 lift write-string))
@@ -123,6 +127,18 @@ Usage:
   ;;
   ;; IO-backed primitives (internal, %-suffixed)
   ;;
+
+  (declare exists?% (Into :a file:Pathname => :a -> IO (Result file:FileError Boolean)))
+  (define (exists?% pth)
+    (wrap-io (file:exists? pth)))
+
+  (declare file-exists?% (Into :a file:Pathname => :a -> IO (Result file:FileError Boolean)))
+  (define (file-exists?% pth)
+    (wrap-io (file:file-exists? pth)))
+
+  (declare directory-exists?% (Into :a file:Pathname => :a -> IO (Result file:FileError Boolean)))
+  (define (directory-exists?% pth)
+    (wrap-io (file:directory-exists? pth)))
 
   (declare open% (file:File :a => file:StreamOptions -> IO (Result file:FileError (file:FileStream :a))))
   (define (open% opts)
@@ -200,6 +216,10 @@ Usage:
   (define (read-char% fs)
     (wrap-io (file:read-char fs)))
 
+  (declare read-line% ((file:FileStream Char) -> IO (Result file:FileError String)))
+  (define (read-line% fs)
+    (wrap-io (file:read-line fs)))
+
   (declare write-char% ((file:FileStream Char) -> Char -> IO (Result file:FileError Unit)))
   (define (write-char% fs c)
     (wrap-io (file:write-char fs c)))
@@ -233,6 +253,10 @@ Usage:
   ;;
 
   (define-class (Monad :m => MonadIoFile :m)
+    (exists? (Into :a file:Pathname => :a -> :m (Result file:FileError Boolean)))
+    (file-exists? (Into :a file:Pathname => :a -> :m (Result file:FileError Boolean)))
+    (directory-exists? (Into :a file:Pathname => :a -> :m (Result file:FileError Boolean)))
+
     (open (file:File :a => file:StreamOptions -> :m (Result file:FileError (file:FileStream :a))))
     (close ((file:FileStream :a) -> :m (Result file:FileError :b)))
     (abort ((file:FileStream :a) -> :m (Result file:FileError :b)))
@@ -246,7 +270,6 @@ Usage:
     (with-temp-directory ((file:Pathname -> IO (Result file:FileError :a))
                           -> :m (Result file:FileError :a)))
 
-    ;; Paths and directories
     (copy ((Into :a file:Pathname) (Into :b file:Pathname) => :a -> :b -> :m (Result file:FileError Unit)))
     (create-directory (Into :p file:Pathname => :p -> :m (Result file:FileError file:Pathname)))
     (delete-file (Into :p file:Pathname => :p -> :m (Result file:FileError Unit)))
@@ -254,15 +277,14 @@ Usage:
     (remove-directory-recursive (Into :p file:Pathname => :p -> :m (Result file:FileError Unit)))
     (system-relative-pathname (Into :sys String => :sys -> String -> :m (Result file:FileError file:Pathname)))
 
-    ;; Text
     (read-file-to-string (Into :p file:Pathname => :p -> :m (Result file:FileError String)))
     (read-file-lines (Into :p file:Pathname => :p -> :m (Result file:FileError (List String))))
     (read-char ((file:FileStream Char) -> :m (Result file:FileError Char)))
+    (read-line ((file:FileStream Char) -> :m (Result file:FileError String)))
     (write-char ((file:FileStream Char) -> Char -> :m (Result file:FileError Unit)))
     (write-line ((file:FileStream Char) -> String -> :m (Result file:FileError Unit)))
     (write-string ((file:FileStream Char) -> String -> :m (Result file:FileError Unit)))
 
-    ;; Vectors / binary-ish
     (read-file-to-vector (file:File :a => (file:FileStream :a) -> :m (Result file:FileError (Vector :a))))
     (read-vector (file:File :a => (file:FileStream :a) -> UFix -> :m (Result file:FileError (Vector :a))))
     (write-vector ((file:File :a) (RuntimeRepr :a) => (file:FileStream :a) -> (Vector :a) -> :m (Result file:FileError Unit)))
@@ -272,6 +294,10 @@ Usage:
 
   ;; IO instance
   (define-instance (MonadIoFile IO)
+    (define exists? exists?%)
+    (define file-exists? file-exists?%)
+    (define directory-exists? directory-exists?%)
+
     (define open open%)
     (define close close%)
     (define abort abort%)
@@ -291,6 +317,7 @@ Usage:
     (define read-file-lines read-file-lines%)
 
     (define read-char read-char%)
+    (define read-line read-line%)
     (define write-char write-char%)
     (define write-line write-line%)
     (define write-string write-string%)

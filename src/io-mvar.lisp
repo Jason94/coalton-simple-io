@@ -30,13 +30,26 @@
    #:is-empty-mvar
 
    #:with-mvar
-   #:do-with-mvar))
+   #:do-with-mvar
+
+   #:MChan
+   #:new-empty-chan
+   #:push-chan
+   #:pop-chan
+   ))
 (in-package :simple-io/mvar)
 
 (named-readtables:in-readtable coalton:coalton)
 
+;;;
+;;; MVar
+;;;
+
 (coalton-toplevel
   (define-struct (MVar :a)
+    "A synchronized container that can be empty or hold one :a.
+Can put data into the container, blocking until it is empty.
+Can take data out of the container, blocking until it is full."
     (lock lk:Lock)
     (cvar cv:ConditionVariable)
     (data (c:Cell (Optional :a))))
@@ -228,3 +241,44 @@ Example:
      (fn (,sym)
        (do
         ,@body))))
+
+;;;
+;;; MChan
+;;;
+
+(coalton-toplevel
+  (define-type (ChanNode :a)
+    (ChanNode% :a (MVar (ChanNode :a))))
+
+  (define-struct (MChan :a)
+    "A synchronized FIFO queue to pass data directionally between threads."
+    (head-var (MVar (MVar (ChanNode :a))))
+    (tail-var (MVar (MVar (ChanNode :a)))))
+
+  (declare new-empty-chan (MonadIoMVar :m => :m (MChan :a)))
+  (define new-empty-chan
+    "Create a new empty channel."
+    (do
+     (cell <- new-empty-mvar)
+     (head-var <- (new-mvar cell))
+     (tail-var <- (new-mvar cell))
+     (pure (MChan head-var tail-var))))
+
+  (declare push-chan (MonadIoMVar :m => MChan :a -> :a -> :m Unit))
+  (define (push-chan chan val)
+    "Push VAL onto CHAN."
+    (do
+     (new-tail-var <- new-empty-mvar)
+     (old-tail-var <- (take-mvar (.tail-var chan)))
+     (put-mvar old-tail-var (ChanNode% val new-tail-var))
+     (put-mvar (.tail-var chan) new-tail-var)))
+
+  (declare pop-chan (MonadIoMVar :m => MChan :a -> :m :a))
+  (define (pop-chan chan)
+    "Pop the front value in CHAN. Blocks while CHAN is empty."
+    (do
+     (old-tail-var <- (take-mvar (.head-var chan)))
+     ((ChanNode% val new-head-var) <- (take-mvar old-tail-var))
+     (put-mvar (.head-var chan) new-head-var)
+     (pure val)))
+  )

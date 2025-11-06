@@ -7,6 +7,8 @@
    #:simple-io/utils)
   (:import-from #:coalton-library/experimental/loops
    #:dolist)
+  (:import-from #:coalton-library/experimental/do-control-loops-adv
+   #:LoopT)
   (:local-nicknames
    (:st #:coalton-library/monad/statet)
    (:env #:coalton-library/monad/environment)
@@ -120,6 +122,7 @@ Example:
 
   (derive-monad-io :m (st:StateT :s :m))
   (derive-monad-io :m (env:EnvT :env :m))
+  (derive-monad-io :m (LoopT :m))
   )
 
 ;;

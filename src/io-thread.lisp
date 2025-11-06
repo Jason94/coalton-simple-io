@@ -6,6 +6,8 @@
    #:coalton-library/functions
    #:simple-io/utils
    #:simple-io/io)
+  (:import-from #:coalton-library/experimental/do-control-loops-adv
+   #:LoopT)
   (:local-nicknames
    (:t #:coalton-threads/thread)
    (:st #:coalton-library/monad/statet)
@@ -75,7 +77,8 @@ Example:
   ;;
 
   (derive-monad-io-thread :m (st:StateT :s :m))
-  (derive-monad-io-thread :m (env:EnvT :e :m)))
+  (derive-monad-io-thread :m (env:EnvT :e :m))
+  (derive-monad-io-thread :m (LoopT :m)))
 
 (cl:defmacro do-fork (cl:&body body)
   `(fork

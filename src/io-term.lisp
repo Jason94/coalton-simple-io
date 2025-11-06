@@ -9,6 +9,8 @@
    #:StateT)
   (:import-from #:coalton-library/monad/environment
    #:EnvT)
+  (:import-from #:coalton-library/experimental/do-control-loops-adv
+   #:LoopT)
   (:export
    #:MonadIoTerm
    #:derive-monad-io-term
@@ -68,4 +70,5 @@ Example:
 
 (coalton-toplevel
   (derive-monad-io-term (StateT :s :m))
-  (derive-monad-io-term (EnvT :e :m)))
+  (derive-monad-io-term (EnvT :e :m))
+  (derive-monad-io-term (LoopT :m)))

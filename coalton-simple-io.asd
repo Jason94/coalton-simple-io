@@ -46,5 +46,6 @@
   :components ((:module "examples"
                 :serial t
                 :components
-                ((:file "channels-threading"))))
+                ((:file "channels-threading")
+                 (:file "hangman"))))
   :description "Example programs for coalton-simple-io.")

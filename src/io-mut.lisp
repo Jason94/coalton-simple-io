@@ -8,6 +8,8 @@
    #:simple-io/io)
   (:import-from #:coalton-library/experimental/loops
    #:dolist)
+  (:import-from #:coalton-library/experimental/do-control-loops-adv
+   #:LoopT)
   (:local-nicknames
    (:at #:simple-io/atomics_)
    (:it #:coalton-library/iterator)
@@ -85,5 +87,5 @@ Example:
   ;;
 
   (derive-monad-io-ref :m (st:StateT :s :m))
-  (derive-monad-io-ref :m (env:EnvT :e :m)))
-
+  (derive-monad-io-ref :m (env:EnvT :e :m))
+  (derive-monad-io-ref :m (LoopT :m)))

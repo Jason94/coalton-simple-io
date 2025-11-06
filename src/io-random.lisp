@@ -6,11 +6,14 @@
    #:coalton-library/functions
    #:simple-io/utils
    #:simple-io/io)
+  (:import-from #:coalton-library/experimental/do-control-loops-adv
+   #:LoopT)
   (:local-nicknames
    (:st  #:coalton-library/monad/statet)
    (:env #:coalton-library/monad/environment))
   (:export
    #:MonadIoRandom
+   #:derive-monad-io-random
    #:RandomState
    #:make-random-state
    #:copy-random-state
@@ -85,22 +88,25 @@
     (define get-current-random-state get-current-random-state%)
     (define set-current-random-state set-current-random-state%)
     (define random random%)
-    (define random_ random_%))
+    (define random_ random_%)))
 
+(cl:defmacro derive-monad-io-random (monad-param monadT-form)
+  "Automatically derive an instance of MonadIoRandom for a monad transformer.
+
+Example:
+  (derive-monad-io-random :m (st:StateT :s :m))"
+  `(define-instance (MonadIoRandom ,monad-param => MonadIoRandom ,monadT-form)
+     (define make-random-state (lift make-random-state))
+     (define get-current-random-state (lift get-current-random-state))
+     (define set-current-random-state (compose lift set-current-random-state))
+     (define random (compose2 lift random))
+     (define random_ (compose lift random_))))
+
+(coalton-toplevel
   ;;
   ;; Std. Library Transformer Instances
   ;;
 
-  (define-instance ((MonadIoRandom :m) => MonadIoRandom (st:StateT :s :m))
-    (define make-random-state (lift make-random-state))
-    (define get-current-random-state (lift get-current-random-state))
-    (define set-current-random-state (compose lift set-current-random-state))
-    (define random (compose2 lift random))
-    (define random_ (compose lift random_)))
-
-  (define-instance ((MonadIoRandom :m) => MonadIoRandom (env:EnvT :e :m))
-    (define make-random-state (lift make-random-state))
-    (define get-current-random-state (lift get-current-random-state))
-    (define set-current-random-state (compose lift set-current-random-state))
-    (define random (compose2 lift random))
-    (define random_ (compose lift random_))))
+  (derive-monad-io-random :m (st:StateT :s :m))
+  (derive-monad-io-random :m (env:EnvT :e :m))
+  (derive-monad-io-random :m (LoopT :m)))

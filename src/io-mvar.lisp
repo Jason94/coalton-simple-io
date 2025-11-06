@@ -6,6 +6,8 @@
    #:coalton-library/functions
    #:simple-io/utils
    #:simple-io/io)
+  (:import-from #:coalton-library/experimental/do-control-loops-adv
+   #:LoopT)
   (:local-nicknames
    (:c   #:coalton-library/cell)
    (:lk  #:coalton-threads/lock)
@@ -233,6 +235,7 @@ Example:
   ;;
   (derive-monad-io-mvar :m (st:StateT :s :m))
   (derive-monad-io-mvar :m (env:EnvT :e :m))
+  (derive-monad-io-mvar :m (LoopT :m))
   )
 
 (cl:defmacro do-with-mvar ((sym mvar) cl:&body body)

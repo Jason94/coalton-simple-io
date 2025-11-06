@@ -4,6 +4,8 @@
    #:coalton
    #:coalton-prelude
    #:simple-io/io)
+  (:import-from #:coalton-library/experimental/do-control-loops-adv
+   #:LoopT)
   (:local-nicknames
    (:c #:coalton-library/cell)
    (:st #:coalton-library/monad/statet)
@@ -43,14 +45,21 @@
     i)
 
   (define-instance (MonadIoUnique IO)
-    (define new-unique new-unique%))
+    (define new-unique new-unique%)))
 
+(cl:defmacro derive-monad-io-unique (monad-param monadT-form)
+  "Automatically derive an instance of MonadIoUnique for a monad transformer.
+
+Example:
+  (derive-monad-io-unique :m (st:StateT :s :m))"
+  `(define-instance (MonadIoUnique ,monad-param => MonadIoUnique ,monadT-form)
+     (define new-unique (lift new-unique))))
+
+(coalton-toplevel
   ;;
   ;; Std. Library Transformer Instances
   ;;
 
-  (define-instance ((MonadIoUnique :m) => MonadIoUnique (st:StateT :s :m))
-    (define new-unique (lift new-unique)))
-
-  (define-instance ((MonadIoUnique :m) => MonadIoUnique (env:EnvT :e :m))
-    (define new-unique (lift new-unique))))
+  (derive-monad-io-unique :m (st:StateT :s :m))
+  (derive-monad-io-unique :m (env:EnvT :e :m))
+  (derive-monad-io-unique :m (LoopT :m)))

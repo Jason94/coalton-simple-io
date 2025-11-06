@@ -8,6 +8,8 @@
    #:simple-io/io)
   (:import-from #:coalton-library/types
    #:RuntimeRepr)
+  (:import-from #:coalton-library/experimental/do-control-loops-adv
+   #:LoopT)
   (:local-nicknames
    (:file #:coalton-library/file)
    (:st   #:coalton-library/monad/statet)
@@ -329,6 +331,6 @@ Usage:
     (define append-to-file append-to-file%)
     (define set-file-position set-file-position%))
 
-  ;; Derive transformer instances via the macro (avoid duplication)
   (derive-monad-io-file :m (st:StateT :s :m))
-  (derive-monad-io-file :m (env:EnvT :e :m)))
+  (derive-monad-io-file :m (env:EnvT :e :m))
+  (derive-monad-io-file :m (LoopT :m)))

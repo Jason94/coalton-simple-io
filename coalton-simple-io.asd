@@ -38,3 +38,13 @@
                  (:file "package"))))
   :description "Test system for coalton-simple-io"
   :perform (test-op (op c) (symbol-call '#:coalton-simple-io/tests '#:run-tests)))
+
+(defsystem "coalton-simple-io/examples"
+  :author "Jason Walker"
+  :license "MIT"
+  :depends-on ("coalton-simple-io")
+  :components ((:module "examples"
+                :serial t
+                :components
+                ((:file "channels-threading"))))
+  :description "Example programs for coalton-simple-io.")

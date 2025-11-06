@@ -21,6 +21,22 @@
 
 (named-readtables:in-readtable coalton:coalton)
 
+;;; This example plays an interactive terminal game of Hangman.
+;;;
+;;; It demonstrates how to combine IO with monad transformers to
+;;; employ other effects. The EnvT monad is used to thread static
+;;; configuration throughout the program. The StateT monad is used
+;;; to maintain the game-state, such as which letters have been
+;;; guessed and how many incorrect guesses have been made.
+;;;
+;;; It also demonstrates several functions which are written in the
+;;; "capabilities classes" style, which allows them to be used more
+;;; flexibly, such as with the advanced looping constructs.
+;;; NOTE: This can be verbose if a lot of capabilities are relied on.
+;;; An alternative is to simply omit the 'declare' altogether, and
+;;; the type inference will figure it all out correctly, if the
+;;; function is (1) used consistently, and (2) only used in one package.
+
 ;;
 ;; Helper Functions
 ;;
@@ -124,7 +140,8 @@
                (pure (InputError (<> (<> "Already guessed " (into c)) "!")))
                (pure (LetterGuess c)))))))
 
-  ;; (declare enter-letter-guess (String -> Char -> HangmanM Unit))
+  (declare enter-letter-guess (MonadState HangmanState :m
+                               => String -> Char -> :m Unit))
   (define (enter-letter-guess secret-word c)
     "Store the guessed letter and increment the number of wrong guesses."
     (modify
@@ -135,7 +152,12 @@
             (num-wrong-guesses_ st)
             (+ 1 (num-wrong-guesses_ st)))))))
 
-  ;; (declare write-status (String -> HangmanM Unit))
+  ;; As noted above, this can be a bit verbose for some. An alternative
+  ;; is to simply omit the 'declare', and the type inference will figure
+  ;; it out.
+  (declare write-status ((MonadState HangmanState :m)
+                         (MonadEnvironment HangmanConf :m)
+                         (MonadIoTerm :m) => String -> :m Unit))
   (define (write-status secret-word)
     (do
      ((HangmanState guessed n-wrong) <- get)

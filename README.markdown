@@ -1,25 +1,26 @@
 # Coalton-Simple-Io - Simple IO monad for Coalton.
 
-## Usage
+## Example Usage
 
 ```lisp
-(coalton-toplevel
-  (declare greet (String -> IO Unit))
-  (define (greet name)
-    (write-line (<> "Hello, " name)))
-    
-  (declare sleep (Integer -> IO Unit))
-  (define (sleep s)
-    (wrap-io
-          (lisp :a (s)
-            (cl:sleep s))
-          Unit)))
-          
-(coalton
-  (run!
+  (declare sum-file (IO Integer))
+  (define sum-file
     (do
-      (sleep 1)
-      (greet "Lisp"))))
+     (write-line "Writing data file...")
+     write-data-file
+     (write-line "Done writing file...")
+     (input-chan <- mv:new-empty-chan)
+     (ints-chan <- mv:new-empty-chan)
+     (sum-mvar <- mv:new-empty-mvar)
+     (write-line "Forking threads...")
+     (fork (reader-thread input-chan))
+     (do-loop-times (_ n-workers)
+       (fork (parser-thread input-chan ints-chan)))
+     (fork (summer-thread ints-chan sum-mvar))
+     (write-line "Waiting for sum...")
+     (sum <- (mv:take-mvar sum-mvar))
+     (write-line (<> "Calculated sum: " (into sum)))
+     (pure sum)))
 ```
 
 ## Installation

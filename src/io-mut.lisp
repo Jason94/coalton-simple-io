@@ -18,6 +18,7 @@
    (:env #:coalton-library/monad/environment))
   (:export
    #:IORef
+   #:derive-monad-io-ref
    #:MonadIoRef
    #:new-io-ref
    #:read

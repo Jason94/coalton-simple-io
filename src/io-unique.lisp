@@ -12,6 +12,7 @@
    (:env #:coalton-library/monad/environment))
   (:export
    #:MonadIoUnique
+   #:derive-monad-io-unique
    #:Unique
    #:new-unique
    #:to-int

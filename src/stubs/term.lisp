@@ -6,9 +6,17 @@
    #:simple-io/io
    #:simple-io/term)
   (:local-nicknames
+   (:l #:coalton-library/list)
    (:f #:coalton-library/monad/free)
    (:ft #:coalton-library/monad/freet)
    (:id #:coalton-library/monad/identity)
+   (:io-rand #:simple-io/random)
+   (:io-mvar #:simple-io/mvar)
+   (:io-atom #:simple-io/atomic)
+   (:io-file #:simple-io/file)
+   (:io-mut #:simple-io/mut)
+   (:io-thd #:simple-io/thread)
+   (:io-unq #:simple-io/unique)
    )
   (:export
    #:TermStubM
@@ -51,15 +59,37 @@
     (define read-line
       (f:liftF (ReadLine% id))))
 
+  ;; These implementations allow MonadIoTerm to sit on top of the normal IO
+  ;; monad. MonadIoTerm will "intercept" any MonadIoTerm behavior, and pass
+  ;; any other effects down the transformer stack to IO.
+  ;;
+  ;; I *think* the one problem with this will be any calls that require IO's,
+  ;; like foreach-io.
+  (derive-monad-io :m (TermStubM :m))
+  (io-rand:derive-monad-io-random :m (TermStubM :m))
+  (io-mvar:derive-monad-io-mvar :m (TermStubM :m))
+  (io-atom:derive-monad-at-ref :m (TermStubM :m))
+  (io-file:derive-monad-io-file :m (TermStubM :m))
+  (io-mut:derive-monad-io-ref :m (TermStubM :m))
+  (io-thd:derive-monad-io-thread :m (TermStubM :m))
+  (io-unq:derive-monad-io-unique :m (TermStubM :m))
+
   (declare run-term-stubM (Monad :m => TermStubM :m :a -> List String -> :m (Tuple (List String) :a)))
   (define (run-term-stubM opm read-line-inputs)
-    (rec % ((written-lines (make-list ""))
+    (rec % ((written-lines (make-list))
             (rem-line-inputs read-line-inputs)
             (opm opm))
       (do
        (step <- (ft:run-freeT opm))
        (match step
-         ((ft:Val a) (pure (Tuple written-lines a)))
+         ((ft:Val a)
+          (let norm-written-lines =
+            (l:reverse
+             (match written-lines
+               ((Cons "" rest)
+                rest)
+               (_ written-lines))))
+          (pure (Tuple norm-written-lines a)))
          ((ft:FReeF op)
           (match op
             ((Write% str next)

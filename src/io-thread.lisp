@@ -62,7 +62,7 @@ Returns the handle to the thread."
   )
 
 (cl:defmacro derive-monad-io-thread (monad-param monadT-form)
-  "Automatically derive an instance of MonadAtRef for a monad transformer.
+  "Automatically derive an instance of MonadIoThread for a monad transformer.
 
 Example:
   (derive-monad-io-thread :m (st:StateT :s :m))"

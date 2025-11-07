@@ -68,7 +68,7 @@
   (derive-monad-io :m (TermStubM :m))
   (io-rand:derive-monad-io-random :m (TermStubM :m))
   (io-mvar:derive-monad-io-mvar :m (TermStubM :m))
-  (io-atom:derive-monad-at-ref :m (TermStubM :m))
+  (io-atom:derive-monad-at-var :m (TermStubM :m))
   (io-file:derive-monad-io-file :m (TermStubM :m))
   (io-mut:derive-monad-io-ref :m (TermStubM :m))
   (io-thd:derive-monad-io-thread :m (TermStubM :m))

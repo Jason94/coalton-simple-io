@@ -37,8 +37,8 @@ values across all threads."
     (define (<=> (Unique% a) (Unique% b))
       (<=> a b)))
 
-  (declare counter% (at:AtRef Integer))
-  (define counter% (run! (at:new-at-ref 0)))
+  (declare counter% (at:AtVar Integer))
+  (define counter% (run! (at:new-at-var 0)))
 
   (declare new-unique% (IO Unique))
   (define new-unique%

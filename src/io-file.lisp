@@ -279,7 +279,7 @@ Usage:
                      -> ((file:FileStream :a) -> IO (Result file:FileError :b))
                      -> :m (Result file:FileError :b)))
     (with-temp-file
-     "Performs an operation `thunk` on a temporary file. File type extensions need to include `.`, like \"
+     "Performs an operation `thunk` on a temporary file. File type extensions need to include `.`"
      (file:File :a => String
                      -> ((file:FileStream :a) -> IO (Result file:FileError :b))
                      -> :m (Result file:FileError :b)))

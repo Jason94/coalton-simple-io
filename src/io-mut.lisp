@@ -35,10 +35,18 @@
     (Var% (Cell :a)))
 
   (define-class (Monad :m => MonadIoVar :m)
-    (new-var (:a -> :m (Var :a)))
-    (read (Var :a -> :m :a))
-    (write (Var :a -> :a -> :m :a))
-    (modify (Var :a -> (:a -> :a) -> :m :a)))
+    (new-var
+     "Create a new variable with an initial value."
+     (:a -> :m (Var :a)))
+    (read
+     "Read the current value stored in a variable."
+     (Var :a -> :m :a))
+    (write
+     "Set the value in a variable and return the old value."
+     (Var :a -> :a -> :m :a))
+    (modify
+     "Modify the value in a variable by applying F, and return the old value."
+     (Var :a -> (:a -> :a) -> :m :a)))
 
   (inline)
   (declare new-var% (:a -> IO (Var :a)))

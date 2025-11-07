@@ -24,9 +24,15 @@
 
 (coalton-toplevel
   (define-class (Monad :m => MonadIoTerm :m)
-    (write (Into :a String => :a -> :m Unit))
-    (write-line (Into :a String => :a -> :m Unit))
-    (read-line (:m String)))
+    (write
+     "Write a string to standard output."
+     (Into :a String => :a -> :m Unit))
+    (write-line
+     "Write a string to standard output followed by a newline."
+     (Into :a String => :a -> :m Unit))
+    (read-line
+     "Read a line from standard input."
+     (:m String)))
 
   (declare write% (Into :a String => :a -> IO Unit))
   (define (write% obj)

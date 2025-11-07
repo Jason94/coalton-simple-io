@@ -77,11 +77,21 @@
   ;;
 
   (define-class (Monad :m => MonadIoRandom :m)
-    (make-random-state (:m RandomState))
-    (get-current-random-state (:m RandomState))
-    (set-current-random-state (RandomState -> :m Unit))
-    (random (RandomLimit :a => RandomState -> :a -> :m :a))
-    (random_ (RandomLimit :a => :a -> :m :a)))
+    (make-random-state
+     "Create a fresh random state."
+     (:m RandomState))
+    (get-current-random-state
+     "Get the current thread's random state."
+     (:m RandomState))
+    (set-current-random-state
+     "Set the current thread's random state."
+     (RandomState -> :m Unit))
+    (random
+     "Generate a random value less than LIMIT using the given random state."
+     (RandomLimit :a => RandomState -> :a -> :m :a))
+    (random_
+     "Generate a random value less than LIMIT using the current random state."
+     (RandomLimit :a => :a -> :m :a)))
 
   (define-instance (MonadIoRandom IO)
     (define make-random-state make-random-state%)

@@ -42,8 +42,13 @@ Example:
 (coalton-toplevel
 
   (define-class (Monad :m => MonadIo :m)
-    (map-into-io (it:IntoIterator :i :a => :i -> (:a -> IO :b) -> :m (List :b)))
-    (foreach-io (it:IntoIterator :i :a => :i -> (:a -> IO :b) -> :m Unit)))
+    (map-into-io
+     "Efficiently perform an IO operation for each element of an iterator and
+return the results."
+     (it:IntoIterator :i :a => :i -> (:a -> IO :b) -> :m (List :b)))
+    (foreach-io
+     "Efficiently perform an IO operation for each element of an iterator."
+     (it:IntoIterator :i :a => :i -> (:a -> IO :b) -> :m Unit)))
 
   ;;
   ;; IO Monad

@@ -57,16 +57,38 @@ Can take data out of the container, blocking until it is full."
     (data (c:Cell (Optional :a))))
 
   (define-class (Monad :m => MonadIoMVar :m)
-    (new-mvar        (:a -> :m (MVar :a)))
-    (new-empty-mvar  (:m (MVar :a)))
-    (take-mvar       (MVar :a -> :m :a))
-    (put-mvar        (MVar :a -> :a -> :m Unit))
-    (try-take-mvar   (MVar :a -> :m (Optional :a)))
-    (try-put-mvar    (MVar :a -> :a -> :m Boolean))
-    (read-mvar       (MVar :a -> :m :a))
-    (swap-mvar       (MVar :a -> :a -> :m :a))
-    (is-empty-mvar   (MVar :a -> :m Boolean))
-    (with-mvar       (MVar :a -> (:a -> IO :b) -> :m :b)))
+    (new-mvar
+     "Create a new MVar containing an initial value."
+     (:a -> :m (MVar :a)))
+    (new-empty-mvar
+     "Create a new empty MVar."
+     (:m (MVar :a)))
+    (take-mvar
+     "Take a value from an MVar, blocking until one is available."
+     (MVar :a -> :m :a))
+    (put-mvar
+     "Put a value into an MVar, blocking until it becomes empty."
+     (MVar :a -> :a -> :m Unit))
+    (try-take-mvar
+     "Attempt to take a value from an MVar; returns None if empty."
+     (MVar :a -> :m (Optional :a)))
+    (try-put-mvar
+     "Attempt to put a value into an MVar; returns False if full and the put fails,
+True if the put succeeds."
+     (MVar :a -> :a -> :m Boolean))
+    (read-mvar
+     "Read (without removing) the value from an MVar, blocking until one is available."
+     (MVar :a -> :m :a))
+    (swap-mvar
+     "Atomically replace the value in an MVar and return the old value."
+     (MVar :a -> :a -> :m :a))
+    (is-empty-mvar
+     "Return True if the MVar is currently empty."
+     (MVar :a -> :m Boolean))
+    (with-mvar
+     "Perform an IO action with the value from an MVar, without removing
+the value. Blocks until the MVar is full."
+     (MVar :a -> (:a -> IO :b) -> :m :b)))
 
   (inline)
   (declare new-mvar% (:a -> IO (MVar :a)))

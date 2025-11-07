@@ -15,11 +15,11 @@
                  (:file "io-mut")
                  (:file "io-term")
                  (:file "io-random")
-                 (:file "io-unique")
                  (:file "io-file")
                  (:file "io-thread")
                  (:file "io-atomic")
                  (:file "io-mvar")
+                 (:file "io-unique")
                  (:file "stubs/term")
                  )))
   :description "Simple IO monad for Coalton."

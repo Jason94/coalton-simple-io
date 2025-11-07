@@ -12,6 +12,7 @@
    #:atomic-pop
    #:atomic-push
    #:atomic-update
+   #:atomic-update-swap
    #:atomic-write))
 
 (in-package #:simple-io/atomics_)
@@ -90,6 +91,18 @@ Returns the new value stored in `atm` after applying F."
       (cl:let ((update-fn (cl:lambda (x)
                             (call-coalton-function f x))))
         (at:atomic-update (atomic-internal-inner atm) update-fn))))
+
+  (declare atomic-update-swap (Atomic :a -> (:a -> :a) -> :a))
+  (define (atomic-update-swap atm f)
+    "Atomically update the value in `atm` by applying F until it succeedes.
+Returns the old value stored in `atm` after applying F."
+    (lisp :a (atm f)
+      (cl:let* ((old-val cl:nil)
+                (update-fn (cl:lambda (x)
+                             (cl:setf old-val x)
+                             (call-coalton-function f x))))
+        (at:atomic-update (atomic-internal-inner atm) update-fn)
+        old-val)))
 
   (declare atomic-write (Atomic :a -> :a -> Unit))
   (define (atomic-write atm val)

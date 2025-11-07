@@ -20,6 +20,7 @@
    #:read
    #:write
    #:modify
+   #:modify-swap
    ))
 (in-package :simple-io/atomic)
 
@@ -37,12 +38,31 @@
     atm)
 
   (define-class (Monad :m => MonadAtRef :m)
-    (new-at-ref (:a -> :m (AtRef :a)))
-    (read (AtRef :a -> :m :a))
-    (write (AtRef :a -> :a -> :m Unit))
-    (modify (AtRef :a -> (:a -> :a) -> :m :a))
-    (push (AtRef (List :a) -> :a -> :m (List :a)))
-    (pop (AtRef (List :a) -> :m (Optional :a))))
+    (new-at-ref
+     "Create a new atomic reference with an initial value."
+     (:a -> :m (AtRef :a)))
+    (read
+     "Read the value from an atomic reference."
+     (AtRef :a -> :m :a))
+    (write
+     "Write a new value to an atomic reference."
+     (AtRef :a -> :a -> :m Unit))
+    (modify
+     "Atomically modify the value of an atomic reference
+by applying F, then return the *new* value of the reference.
+F may be called multiple times, and must be a pure function."
+     (AtRef :a -> (:a -> :a) -> :m :a))
+    (modify-swap
+     "Atomically modify the value of an atomic reference
+by applying F, then return the *old* value of the reference.
+F may be called multiple times, and must be a pure function."
+     (AtRef :a -> (:a -> :a) -> :m :a))
+    (push
+     "Atomically push a value onto an atomic list."
+     (AtRef (List :a) -> :a -> :m (List :a)))
+    (pop
+     "Atomically pop and retrieve the head of an atomic list."
+     (AtRef (List :a) -> :m (Optional :a))))
 
   (inline)
   (declare new-at-ref% (:a -> IO (AtRef :a)))
@@ -65,6 +85,11 @@
     (wrap-io (at:atomic-update (unwrap-atref atm) f)))
 
   (inline)
+  (declare modify-swap% (AtRef :a -> (:a -> :a) -> IO :a))
+  (define (modify-swap% atm f)
+    (wrap-io (at:atomic-update-swap (unwrap-atref atm) f)))
+
+  (inline)
   (declare push% (AtRef (List :a) -> :a -> IO (List :a)))
   (define (push% atm elt)
     (wrap-io (at:atomic-push (unwrap-atref atm) elt)))
@@ -79,6 +104,7 @@
     (define read read%)
     (define write write%)
     (define modify modify%)
+    (define modify-swap modify-swap%)
     (define push push%)
     (define pop pop%))
   )
@@ -93,6 +119,7 @@ Example:
      (define read (compose lift read))
      (define write (compose2 lift write))
      (define modify (compose2 lift modify))
+     (define modify-swap (compose2 lift modify-swap))
      (define push (compose2 lift push))
      (define pop (compose lift pop))))
 

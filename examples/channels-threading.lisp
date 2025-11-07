@@ -73,8 +73,8 @@
   (declare summer-thread (mv:MChan (Optional Integer) -> mv:MVar Integer -> IO Unit))
   (define (summer-thread mchan-int mvar-sum)
     (do
-     (sum <- (m:new-io-ref 0))
-     (closed-parsers <- (m:new-io-ref 0))
+     (sum <- (m:new-var 0))
+     (closed-parsers <- (m:new-var 0))
      (do-loop-while
        (do-if-valM (x (mv:pop-chan mchan-int))
              (do

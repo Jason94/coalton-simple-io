@@ -17,10 +17,10 @@
    (:st #:coalton-library/monad/statet)
    (:env #:coalton-library/monad/environment))
   (:export
-   #:IORef
-   #:derive-monad-io-ref
-   #:MonadIoRef
-   #:new-io-ref
+   #:Var
+   #:derive-monad-var
+   #:MonadIoVar
+   #:new-var
    #:read
    #:write
    #:modify
@@ -31,52 +31,52 @@
 
 (coalton-toplevel
   (repr :transparent)
-  (define-type (IORef :a)
-    (IORef% (Cell :a)))
+  (define-type (Var :a)
+    (Var% (Cell :a)))
 
-  (define-class (Monad :m => MonadIoRef :m)
-    (new-io-ref (:a -> :m (IORef :a)))
-    (read (IORef :a -> :m :a))
-    (write (IORef :a -> :a -> :m :a))
-    (modify (IORef :a -> (:a -> :a) -> :m :a)))
-
-  (inline)
-  (declare new-io-ref% (:a -> IO (IORef :a)))
-  (define (new-io-ref% val)
-    (wrap-io (IORef% (c:new val))))
+  (define-class (Monad :m => MonadIoVar :m)
+    (new-var (:a -> :m (Var :a)))
+    (read (Var :a -> :m :a))
+    (write (Var :a -> :a -> :m :a))
+    (modify (Var :a -> (:a -> :a) -> :m :a)))
 
   (inline)
-  (declare read% (IORef :a -> IO :a))
-  (define (read% (IORef% cel))
+  (declare new-var% (:a -> IO (Var :a)))
+  (define (new-var% val)
+    (wrap-io (Var% (c:new val))))
+
+  (inline)
+  (declare read% (Var :a -> IO :a))
+  (define (read% (Var% cel))
     (wrap-io (c:read cel)))
 
   (inline)
-  (declare write% (IORef :a -> :a -> IO :a))
-  (define (write% (IORef% cel) val)
-    "Set the value in an IORef and return the old value."
+  (declare write% (Var :a -> :a -> IO :a))
+  (define (write% (Var% cel) val)
+    "Set the value in an Var and return the old value."
     (wrap-io
       (c:swap! cel val)))
 
   (inline)
-  (declare modify% (IORef :a -> (:a -> :a) -> IO :a))
-  (define (modify% (IORef% cel) f)
-    "Modify the value in an IORef and return the old value."
+  (declare modify% (Var :a -> (:a -> :a) -> IO :a))
+  (define (modify% (Var% cel) f)
+    "Modify the value in an Var and return the old value."
     (wrap-io (c:update-swap! f cel)))
 
-  (define-instance (MonadIoRef IO)
-    (define new-io-ref new-io-ref%)
+  (define-instance (MonadIoVar IO)
+    (define new-var new-var%)
     (define read read%)
     (define write write%)
     (define modify modify%))
   )
 
-(cl:defmacro derive-monad-io-ref (monad-param monadT-form)
-  "Automatically derive an instance of MonadIoRef for a monad transformer.
+(cl:defmacro derive-monad-var (monad-param monadT-form)
+  "Automatically derive an instance of MonadIoVar for a monad transformer.
 
 Example:
-  (derive-monad-io-ref :m (st:StateT :s :m))"
-  `(define-instance (MonadIoRef ,monad-param => MonadIoRef ,monadT-form)
-     (define new-io-ref (compose lift new-io-ref))
+  (derive-monad-var :m (st:StateT :s :m))"
+  `(define-instance (MonadIoVar ,monad-param => MonadIoVar ,monadT-form)
+     (define new-var (compose lift new-var))
      (define read (compose lift read))
      (define write (compose2 lift write))
      (define modify (compose2 lift modify))))
@@ -87,6 +87,6 @@ Example:
   ;; Std. Library Transformer Instances
   ;;
 
-  (derive-monad-io-ref :m (st:StateT :s :m))
-  (derive-monad-io-ref :m (env:EnvT :e :m))
-  (derive-monad-io-ref :m (LoopT :m)))
+  (derive-monad-var :m (st:StateT :s :m))
+  (derive-monad-var :m (env:EnvT :e :m))
+  (derive-monad-var :m (LoopT :m)))

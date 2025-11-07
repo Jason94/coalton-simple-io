@@ -34,7 +34,7 @@
                "fiasco")
   :components ((:module "tests"
                 :components
-                ((:file "main")
+                ((:file "io")
                  (:file "package"))))
   :description "Test system for coalton-simple-io"
   :perform (test-op (op c) (symbol-call '#:coalton-simple-io/tests '#:run-tests)))

@@ -21,6 +21,7 @@
 
    #:MonadIo
    #:derive-monad-io
+   #:wrap-io_
    #:map-into-io
    #:do-map-into-io
    #:foreach-io
@@ -32,16 +33,20 @@
 
 (cl:defmacro wrap-io (cl:&body body)
   "Wrap the execution of BODY in the IO monad.
+Supports any MonadIo instance.
 
 Example:
   (wrap-io
     (lisp :a (str)
       (cl:print str)))"
-  `(IO% (fn () ,@body)))
+  `(wrap-io_ (fn () ,@body)))
 
 (coalton-toplevel
 
   (define-class (Monad :m => MonadIo :m)
+    (wrap-io_
+     "Wrap a (potentially) side-effectful function in the monad."
+     ((Unit -> :a) -> :m :a))
     (map-into-io
      "Efficiently perform an IO operation for each element of an iterator and
 return the results."
@@ -107,6 +112,7 @@ return the results."
          (run! (fa->io-b (f->a)))))))
 
   (define-instance (MonadIo IO)
+    (define wrap-io_ IO%)
     (define map-into-io map-into-io%)
     (define foreach-io foreach-io%)))
 
@@ -116,6 +122,7 @@ return the results."
 Example:
   (derive-monad-io :m (st:StateT :s :m))"
   `(define-instance (MonadIo ,monad-param => MonadIo ,monadT-form)
+     (define wrap-io_ (compose lift wrap-io_))
      (define map-into-io (compose2 lift map-into-io))
      (define foreach-io (compose2 lift foreach-io))))
 

@@ -33,8 +33,13 @@
                "coalton/testing"
                "fiasco")
   :components ((:module "tests"
+                :serial t
                 :components
                 ((:file "io")
+                 (:file "mut")
+                 (:file "random")
+                 (:file "thread")
+                 (:file "mvar")
                  (:file "package"))))
   :description "Test system for coalton-simple-io"
   :perform (test-op (op c) (symbol-call '#:coalton-simple-io/tests '#:run-tests)))
@@ -44,7 +49,6 @@
   :license "MIT"
   :depends-on ("coalton-simple-io")
   :components ((:module "examples"
-                :serial t
                 :components
                 ((:file "channels-threading")
                  (:file "hangman"))))

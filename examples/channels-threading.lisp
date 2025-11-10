@@ -32,7 +32,7 @@
 (coalton-toplevel
   (define data-filename "rands.txt")
   (declare data-rows UFix)
-  (define data-rows 10000000)
+  (define data-rows 1000000)
   (declare data-max UFix)
   (define data-max 500000000)
   (declare n-workers UFix)

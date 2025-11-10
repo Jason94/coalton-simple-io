@@ -38,7 +38,8 @@ values across all threads."
       (<=> a b)))
 
   (declare counter% (at:AtVar Integer))
-  (define counter% (run! (at:new-at-var 0)))
+  (define counter% (run-as! (IO (at:AtVar Integer))
+                            (at:new-at-var 0)))
 
   (declare new-unique% (IO Unique))
   (define new-unique%

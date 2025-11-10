@@ -10,7 +10,8 @@
    #:LoopT)
   (:local-nicknames
    (:st  #:coalton-library/monad/statet)
-   (:env #:coalton-library/monad/environment))
+   (:env #:coalton-library/monad/environment)
+   (:io #:simple-io/io))
   (:export
    #:MonadIoRandom
    #:derive-monad-io-random
@@ -42,34 +43,34 @@
   ;; IO Implementation
   ;;
 
-  (declare make-random-state% (MonadIo :m => (:m RandomState)))
+  (declare make-random-state% (MonadIo :m => :m RandomState))
   (define make-random-state%
     (wrap-io (lisp :a ()
                (cl:make-random-state cl:t))))
 
-  (declare copy-random-state (MonadIo :m => (RandomState -> RandomState)))
+  (declare copy-random-state (MonadIo :m => RandomState -> :m RandomState))
   (define (copy-random-state rs)
-    (lisp :a (rs)
-      (cl:make-random-state rs)))
+    (wrap-io (lisp :a (rs)
+               (cl:make-random-state rs))))
 
-  (declare get-current-random-state% (MonadIo :m => (:m RandomState)))
+  (declare get-current-random-state% (MonadIo :m => :m RandomState))
   (define get-current-random-state%
     (wrap-io (lisp :a ()
                cl:*random-state*)))
 
-  (declare set-current-random-state% (MonadIo :m => (RandomState -> :m Unit)))
+  (declare set-current-random-state% (MonadIo :m => RandomState -> :m Unit))
   (define (set-current-random-state% rs)
     (wrap-io
       (lisp :a (rs)
         (cl:setf cl:*random-state* rs))
       Unit))
 
-  (declare random% (RandomLimit :a MonadIo :m => RandomState -> :a -> :m :a))
+  (declare random% ((RandomLimit :a) (MonadIo :m) => RandomState -> :a -> :m :a))
   (define (random% rs limit)
     (wrap-io (lisp :a (rs limit)
                (cl:random limit rs))))
 
-  (declare random_% (RandomLimit :a MonadIo :m => :a -> :m :a))
+  (declare random_% ((RandomLimit :a) (MonadIo :m) => :a -> :m :a))
   (define (random_% limit)
     (wrap-io (lisp :a (limit)
                (cl:random limit))))
@@ -93,18 +94,15 @@
      (RandomLimit :a => RandomState -> :a -> :m :a))
     (random_
      "Generate a random value less than LIMIT using the current random state."
-     (RandomLimit :a => :a -> :m :a)))
-
-  
+     (RandomLimit :a => :a -> :m :a))))
 
 (cl:defmacro implement-monad-io-random (monad)
   `(define-instance (MonadIoRandom ,monad)
      (define make-random-state make-random-state%)
-    (define get-current-random-state get-current-random-state%)
-    (define set-current-random-state set-current-random-state%)
-    (define random random%)
-    (define random_ random_%))
-)
+     (define get-current-random-state get-current-random-state%)
+     (define set-current-random-state set-current-random-state%)
+     (define random random%)
+     (define random_ random_%)))
 
 (cl:defmacro derive-monad-io-random (monad-param monadT-form)
   "Automatically derive an instance of MonadIoRandom for a monad transformer.
@@ -126,3 +124,11 @@ Example:
   (derive-monad-io-random :m (st:StateT :s :m))
   (derive-monad-io-random :m (env:EnvT :e :m))
   (derive-monad-io-random :m (LoopT :m)))
+
+;;
+;; Simple IO Implementation
+;;
+
+(coalton-toplevel
+
+  (implement-monad-io-random io:IO))

@@ -19,7 +19,7 @@
 
 (define-test test-mvar-read-initial-value ()
   (let result =
-    (run!
+    (run-io!
       (do
         (mv <- (new-mvar 10))
         (read-mvar mv))))
@@ -27,7 +27,7 @@
 
 (define-test test-mvar-subsequent-read ()
   (let result =
-    (run!
+    (run-io!
       (do
         (mv <- (new-mvar 10))
         (a <- (read-mvar mv))
@@ -37,7 +37,7 @@
 
 (define-test test-mvar-take-initial-value ()
   (let result =
-    (run!
+    (run-io!
       (do
         (mv <- (new-mvar 10))
         (take-mvar mv))))
@@ -45,7 +45,7 @@
 
 (define-test test-mvar-try-take-initial-value ()
   (let result =
-    (run!
+    (run-io!
      (do
       (mv <- (new-mvar 10))
       (try-take-mvar mv))))
@@ -54,7 +54,7 @@
 (define-test test-mvar-try-take-empty ()
   (let result =
     (the (Optional Integer)
-         (run!
+         (run-io!
           (do
            (mv <- new-empty-mvar)
            (try-take-mvar mv)))))
@@ -62,7 +62,7 @@
 
 (define-test test-mvar-try-put-empty ()
   (let result =
-    (run!
+    (run-io!
      (do
       (mv <- new-empty-mvar)
       (put-result <- (try-put-mvar mv 10))
@@ -73,7 +73,7 @@
 
 (define-test test-mvar-try-put-full ()
   (let result =
-    (run!
+    (run-io!
      (do
       (mv <- (new-mvar 0))
       (put-result <- (try-put-mvar mv 10))
@@ -84,7 +84,7 @@
 
 (define-test test-mvar-is-empty ()
   (let result =
-    (run!
+    (run-io!
      (do
       (mv <- (the (:m (MVar Integer))
                   new-empty-mvar) )
@@ -93,7 +93,7 @@
 
 (define-test test-mvar-is-not-empty ()
   (let result =
-    (run!
+    (run-io!
      (do
       (mv <- (new-mvar 10))
       (is-empty-mvar mv))))
@@ -101,7 +101,7 @@
 
 (define-test test-mvar-put-empty ()
   (let result =
-    (run!
+    (run-io!
      (do
       (mv <- new-empty-mvar)
       (put-mvar mv 10)
@@ -110,7 +110,7 @@
 
 (define-test test-mvar-swap ()
   (let result =
-    (run!
+    (run-io!
      (do
       (mv <- (new-mvar 10))
       (old <- (swap-mvar mv -10))

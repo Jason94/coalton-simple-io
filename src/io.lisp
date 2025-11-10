@@ -4,7 +4,8 @@
    #:coalton
    #:coalton-prelude
    #:coalton-library/functions
-   #:simple-io/utils)
+   #:simple-io/utils
+   #:simple-io/monad-io)
   (:import-from #:coalton-library/experimental/loops
    #:dolist)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
@@ -16,6 +17,16 @@
    (:c #:coalton-library/cell))
   (:export
    #:IO
+   #:run-io!
+
+   ;; Re-export the basic IO operations for usability, so that users
+   ;; who want to use IO don't have to import two files.
+   #:wrap-io
+   #:wrap-io_
+   #:map-into-io
+   #:foreach-io
+   #:do-map-into-io
+   #:do-foreach-io
    ))
 (in-package :simple-io/io)
 
@@ -30,8 +41,8 @@
     (IO% (Unit -> :a)))
 
   (inline)
-  (declare run!% (IO :a -> :a))
-  (define (run!% (IO% funit->a))
+  (declare run-io! (IO :a -> :a))
+  (define (run-io! (IO% funit->a))
     (funit->a))
   (define-instance (Functor IO)
     (inline)
@@ -54,12 +65,14 @@
     (define (>>= (IO% f->a) fa->io-b)
       (IO%
        (fn ()
-         (run!% (fa->io-b (f->a)))))))
-
-  (define-instance (MonadIo IO)
-    (define wrap-io_ IO%)
-    (define map-into-io map-into-io%)
-    (define foreach-io foreach-io%))
+         (run-io! (fa->io-b (f->a)))))))
 
   (define-instance (RunIo IO)
-    (define run! run!%)))
+    (define run! run-io!))
+
+  ;;
+  ;; MonadIo Instances
+  ;;
+
+  (define-instance (MonadIo IO)
+    (define wrap-io_ IO%)))

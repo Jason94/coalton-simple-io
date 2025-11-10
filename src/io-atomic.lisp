@@ -10,6 +10,7 @@
    #:LoopT)
   (:local-nicknames
    (:at #:simple-io/atomics_)
+   (:io #:simple-io/io)
    (:st #:coalton-library/monad/statet)
    (:env #:coalton-library/monad/environment))
   (:export
@@ -35,7 +36,7 @@
     (AtVar% (at:Atomic :a)))
 
   (inline)
-  (declare unwrap-atvar (MonadIo :m => AtVar :a -> at:Atomic :a))
+  (declare unwrap-atvar (AtVar :a -> at:Atomic :a))
   (define (unwrap-atvar (AtVar% atm))
     atm)
 
@@ -134,3 +135,11 @@ Example:
   (derive-monad-at-var :m (st:StateT :s :m))
   (derive-monad-at-var :m (env:EnvT :e :m))
   (derive-monad-at-var :m (LoopT :m)))
+
+;;
+;; Simple IO Implementation
+;;
+
+(coalton-toplevel
+
+  (implement-monad-io-atomic io:IO))

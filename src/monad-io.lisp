@@ -23,6 +23,8 @@
    #:run!
    #:map-into-io
    #:foreach-io
+   #:do-map-into-io
+   #:do-foreach-io
    #:run-as!
    ))
 (in-package :simple-io/monad-io)
@@ -40,59 +42,25 @@ Example:
   `(wrap-io_ (fn () ,@body)))
 
 (coalton-toplevel
-  ;; MonadIo and RunIo typeclasses
   (define-class (Monad :m => MonadIo :m)
     (wrap-io_
      "Wrap a (potentially) side-effectful function in the monad."
      ((Unit -> :a) -> :m :a)))
 
-  (define-class (MonadIo :m => RunIo :m)
+  (define-class (RunIo :m)
     "A MonadIo operation that can be run to return its output."
     (run!
      "Run a (potentially) side-effectful operation."
      (:m :a -> :a))
-;;     (map-into-io
-;;      "Efficiently perform a monadic operation for each element of an iterator
-;; and return the results."
-;;      (it:IntoIterator :i :a => :i -> (:a -> :m :b) -> :m (List :b)))
-;;     (foreach-io
-;;      "Efficiently perform a monadic operation for each element of an iterator."
-;;      (it:IntoIterator :i :a => :i -> (:a -> :m :b) -> :m Unit))))
     ))
 
-(coalton-toplevel
-  (inline)
-  (declare map-into-io% ((RunIo :m) (it:IntoIterator :i :a) => :i -> (:a -> :m :b) -> :m (List :b)))
-  (define (map-into-io% itr a->mb)
-    "Efficiently perform a monadic operation for each element of an iterator
-and return the results."
-    (wrap-io
-      (let results = (c:new (make-list)))
-      (for a in (it:into-iter itr)
-        (c:push! results (run! (a->mb a))))
-      (reverse (c:read results))))
-
-  (inline)
-  (declare foreach-io% ((RunIo :m) (it:IntoIterator :i :a) => :i -> (:a -> :m :b) -> :m Unit))
-  (define (foreach-io% itr a->mb)
-    "Efficiently perform a monadic operation for each element of an iterator."
-    (wrap-io
-      (for a in (it:into-iter itr)
-        (run! (a->mb a)))
-      Unit)))
-
 (cl:defmacro derive-monad-io (monad-param monadT-form)
-  "Automatically derive an instance of MonadIo and RunIo for a monad transformer.
+  "Automatically derive an instance of MonadIo for a monad transformer.
 
 Example:
   (derive-monad-io :m (st:StateT :s :m))"
-  `(progn
-     (define-instance (MonadIo ,monad-param => MonadIo ,monadT-form)
-       (define wrap-io_ (compose lift wrap-io_)))
-     (define-instance (RunIo ,monad-param => RunIo ,monadT-form)
-       (define run! (compose lift run!))
-       (define map-into-io (compose2 lift map-into-io))
-       (define foreach-io (compose2 lift foreach-io)))))
+  `(define-instance (MonadIo ,monad-param => MonadIo ,monadT-form)
+     (define wrap-io_ (compose lift wrap-io_))))
 
 (cl:defmacro run-as! (m-type m-op)
   "Run M-OP using the concrete RunIo M-TYPE. Useful for situations where
@@ -117,20 +85,37 @@ putting in the full type of M-OP, not just (IO :a).
   ;; Std. Library Transformer Instances
   ;;
 
-  (define-instance (monadio :m => monadio (st:statet :s :m))
-    (define wrap-io_
-      (compose lift wrap-io_)))
-  (define-instance (runio :m => runio (st:statet :s :m))
-    ;; (define map-into-io
-    ;;   (compose2 lift map-into-io))
-    ;; (define foreach-io
-    ;;   (compose2 lift foreach-io))
-    (define run!
-      (compose lift run!)))
-  ;; (derive-monad-io :m (st:StateT :s :m))
-  ;; (derive-monad-io :m (env:EnvT :env :m))
-  ;; (derive-monad-io :m (LoopT :m))
+  (derive-monad-io :m (st:StateT :s :m))
+  (derive-monad-io :m (env:EnvT :env :m))
+  (derive-monad-io :m (LoopT :m))
   )
+
+;;
+;; Efficient Iteration Ops
+;;
+
+(coalton-toplevel
+  (inline)
+  (declare map-into-io ((MonadIo :m) (RunIo :m) (it:IntoIterator :i :a)
+                         => :i -> (:a -> :m :b) -> :m (List :b)))
+  (define (map-into-io itr a->mb)
+    "Efficiently perform a monadic operation for each element of an iterator
+and return the results."
+    (wrap-io
+      (let results = (c:new (make-list)))
+      (for a in (it:into-iter itr)
+        (c:push! results (run! (a->mb a))))
+      (reverse (c:read results))))
+
+  (inline)
+  (declare foreach-io ((MonadIo :m) (RunIo :m) (it:IntoIterator :i :a)
+                        => :i -> (:a -> :m :b) -> :m Unit))
+  (define (foreach-io itr a->mb)
+    "Efficiently perform a monadic operation for each element of an iterator."
+    (wrap-io
+      (for a in (it:into-iter itr)
+        (run! (a->mb a)))
+      Unit)))
 
 ;;
 ;; Syntactic Sugar Macros

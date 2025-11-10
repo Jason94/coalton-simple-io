@@ -1,7 +1,6 @@
 (cl:in-package :cl-user)
 (defpackage :simple-io/io-all
-  (:use
-   #:cl)
+  (:use #:coalton #:coalton-prelude)
   (:import-from #:simple-io/thread
    #:implement-monad-io-thread)
   (:import-from #:simple-io/atomic

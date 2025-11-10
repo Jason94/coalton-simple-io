@@ -3,7 +3,7 @@
   (:use
    #:coalton
    #:coalton-prelude
-   #:simple-io/io
+   #:simple-io/monad-io
    #:simple-io/term)
   (:local-nicknames
    (:l #:coalton-library/list)

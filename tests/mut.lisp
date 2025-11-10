@@ -1,6 +1,7 @@
 (defpackage :coalton-simple-io/tests/mut
   (:use #:coalton #:coalton-prelude #:coalton-testing
         #:simple-io/io
+        #:simple-io/monad-io
         #:simple-io/mut))
 (in-package :coalton-simple-io/tests/mut)
 
@@ -11,14 +12,14 @@
 
 (define-test test-mut-new-read ()
   (is (== 10
-          (run!
+          (run-io!
             (do
               (v <- (new-var 10))
               (read v))))))
 
 (define-test test-mut-write-returns-old ()
   (is (== (Tuple 1 2)
-          (run!
+          (run-io!
             (do
               (v   <- (new-var 1))
               (old <- (write v 2))
@@ -27,7 +28,7 @@
 
 (define-test test-mut-modify-returns-old ()
   (is (== (Tuple 5 8)
-          (run!
+          (run-io!
             (do
               (v   <- (new-var 5))
               (old <- (modify v (fn (x) (+ x 3))))
@@ -36,7 +37,7 @@
 
 (define-test test-mut-sequenced-write-modify ()
   (is (== (make-list 0 4 4 8 8 9)
-          (run!
+          (run-io!
             (do
               (v     <- (new-var 0))
               (oldW  <- (write v 4))

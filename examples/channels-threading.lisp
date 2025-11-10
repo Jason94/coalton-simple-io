@@ -104,4 +104,4 @@
   )
 
 (cl:defun run-example ()
-  (coalton (run! sum-file)))
+  (coalton (run-io! sum-file)))

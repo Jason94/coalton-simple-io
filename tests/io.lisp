@@ -1,6 +1,7 @@
 (defpackage coalton-simple-io/tests/io
   (:use #:coalton #:coalton-prelude #:coalton-testing
-        #:simple-io/io)
+        #:simple-io/io
+        #:simple-io/monad-io)
   (:local-nicknames
    (:l #:coalton-library/list)
    (:c #:coalton-library/cell))
@@ -32,21 +33,21 @@
 
 (define-test test-map-into-io-empty ()
   (let result =
-    (run!
+    (run-io!
      (do-map-into-io (x (make-list))
        (pure (+ x 10)))))
   (is (== Nil result)))
 
 (define-test test-map-into-io ()
   (let result =
-    (run!
+    (run-io!
      (do-map-into-io (x (make-list 0 10 20 30))
        (pure (+ x 10)))))
   (is (== (make-list 10 20 30 40) result)))
 
 (define-test test-foreach-io-empty ()
   (let run-ints = (c:new Nil))
-  (run!
+  (run-io!
    (do-foreach-io (x (the (List Integer) (make-list)))
      (wrap-io
        (c:push! run-ints x))))
@@ -54,7 +55,7 @@
 
 (define-test test-foreach-io ()
   (let run-ints = (c:new Nil))
-  (run!
+  (run-io!
    (do-foreach-io (x (make-list 0 10 20 30))
      (wrap-io
        (c:push! run-ints x))))

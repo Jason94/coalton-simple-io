@@ -11,6 +11,8 @@
    #:EnvT)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
    #:LoopT)
+  (:local-nicknames
+   (:io #:simple-io/io))
   (:export
    #:MonadIoTerm
    #:derive-monad-io-term
@@ -36,7 +38,7 @@
      "Read a line from standard input."
      (:m String)))
 
-  (declare write% (Into :a String MonadIo :m => :a -> :m Unit))
+  (declare write% ((Into :a String) (MonadIo :m) => :a -> :m Unit))
   (define (write% obj)
     (let str = (the String (into obj)))
     (wrap-io
@@ -44,7 +46,7 @@
         (cl:format cl:t "~a" str))
       Unit))
 
-  (declare write-line% ((Into :a String) MonadIo :m => :a -> :m Unit))
+  (declare write-line% ((Into :a String) (MonadIo :m) => :a -> :m Unit))
   (define (write-line% obj)
     (let str = (the String (into obj)))
     (wrap-io
@@ -52,19 +54,16 @@
         (cl:format cl:t "~a~%" str))
       Unit))
 
-  (declare read-line% (MonadIo :m => (:m String)))
+  (declare read-line% (MonadIo :m => :m String))
   (define read-line%
     (wrap-io (lisp :a ()
-               (cl:read-line))))
-
-  
+               (cl:read-line)))))
 
 (cl:defmacro implement-monad-io-term (monad)
   `(define-instance (MonadIoTerm ,monad)
      (define write write%)
-    (define write-line write-line%)
-    (define read-line read-line%))
-)
+     (define write-line write-line%)
+     (define read-line read-line%)))
 
 (cl:defmacro derive-monad-io-term (monadT-form)
   "Automatically derive an instance of MonadIoTerm for a monad transformer.
@@ -84,3 +83,11 @@ Example:
   (derive-monad-io-term (StateT :s :m))
   (derive-monad-io-term (EnvT :e :m))
   (derive-monad-io-term (LoopT :m)))
+
+;;
+;; Simple IO Implementation
+;;
+
+(coalton-toplevel
+
+  (implement-monad-io-term io:IO))

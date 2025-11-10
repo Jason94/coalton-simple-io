@@ -360,10 +360,7 @@ in some cases. Try WITH-TEMP-DIRECTORY if you have issues."
      ((Into :p file:Pathname) (file:File :a) (RuntimeRepr :a) => :p -> (Vector :a) -> :m (Result file:FileError Unit)))
     (set-file-position
      "Sets the file position of a file stream."
-     ((file:FileStream :a) -> UFix -> :m (Result file:FileError Unit))))
-
-  ;; Implementation macro for a concrete MonadIo
-  )
+     ((file:FileStream :a) -> UFix -> :m (Result file:FileError Unit)))))
 
 (cl:defmacro implement-monad-io-file (monad)
   `(define-instance (MonadIoFile ,monad)

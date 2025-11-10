@@ -1,11 +1,11 @@
 (cl:in-package :cl-user)
-(defpackage :simple-io/io
+(defpackage :io/io
   (:use
    #:coalton
    #:coalton-prelude
    #:coalton-library/functions
-   #:simple-io/utils
-   #:simple-io/monad-io)
+   #:io/utils
+   #:io/monad-io)
   (:import-from #:coalton-library/experimental/loops
    #:dolist)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
@@ -28,7 +28,7 @@
    #:do-map-into-io
    #:do-foreach-io
    ))
-(in-package :simple-io/io)
+(in-package :io/io)
 
 (named-readtables:in-readtable coalton:coalton)
 

@@ -1,10 +1,10 @@
 (cl:in-package :cl-user)
-(defpackage :simple-io/term
+(defpackage :io/term
   (:use
    #:coalton
    #:coalton-prelude
    #:coalton-library/functions
-   #:simple-io/monad-io)
+   #:io/monad-io)
   (:import-from #:coalton-library/monad/statet
    #:StateT)
   (:import-from #:coalton-library/monad/environment
@@ -12,7 +12,7 @@
   (:import-from #:coalton-library/experimental/do-control-loops-adv
    #:LoopT)
   (:local-nicknames
-   (:io #:simple-io/io))
+   (:io #:io/io))
   (:export
    #:MonadIoTerm
    #:derive-monad-io-term
@@ -22,7 +22,7 @@
    #:read-line
    #:implement-monad-io-term
    ))
-(in-package :simple-io/term)
+(in-package :io/term)
 
 (named-readtables:in-readtable coalton:coalton)
 

@@ -1,14 +1,14 @@
 (cl:in-package :cl-user)
 
-(defpackage :simple-io.doc
+(defpackage :io.doc
   (:use :cl))
-(in-package :simple-io.doc)
+(in-package :io.doc)
 
 (defun write-docs (&key
                      (pathname "SIMPLE-IO.md")
-                     (packages '(simple-io/io)))
+                     (packages '(io/io)))
   ;; (ql:quickload "coalton/doc")
-  ;; (ql:quickload "simple-io")
+  ;; (ql:quickload "io")
 
   (coalton/doc:write-documentation
     pathname

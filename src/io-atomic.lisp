@@ -1,16 +1,16 @@
 (cl:in-package :cl-user)
-(defpackage :simple-io/atomic
+(defpackage :io/atomic
   (:use
    #:coalton
    #:coalton-prelude
    #:coalton-library/functions
-   #:simple-io/utils
-   #:simple-io/monad-io)
+   #:io/utils
+   #:io/monad-io)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
    #:LoopT)
   (:local-nicknames
-   (:at #:simple-io/atomics_)
-   (:io #:simple-io/io)
+   (:at #:io/atomics_)
+   (:io #:io/io)
    (:st #:coalton-library/monad/statet)
    (:env #:coalton-library/monad/environment))
   (:export
@@ -25,7 +25,7 @@
    
    #:implement-monad-io-atomic
    ))
-(in-package :simple-io/atomic)
+(in-package :io/atomic)
 
 (named-readtables:in-readtable coalton:coalton)
 

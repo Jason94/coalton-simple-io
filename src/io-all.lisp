@@ -1,25 +1,25 @@
 (cl:in-package :cl-user)
-(defpackage :simple-io/io-all
+(defpackage :io/io-all
   (:use #:coalton #:coalton-prelude)
-  (:import-from #:simple-io/thread
+  (:import-from #:io/thread
    #:implement-monad-io-thread)
-  (:import-from #:simple-io/atomic
+  (:import-from #:io/atomic
    #:implement-monad-io-atomic)
-  (:import-from #:simple-io/mut
+  (:import-from #:io/mut
    #:implement-monad-io-var)
-  (:import-from #:simple-io/mvar
+  (:import-from #:io/mvar
    #:implement-monad-io-mvar)
-  (:import-from #:simple-io/file
+  (:import-from #:io/file
    #:implement-monad-io-file)
-  (:import-from #:simple-io/random
+  (:import-from #:io/random
    #:implement-monad-io-random)
-  (:import-from #:simple-io/term
+  (:import-from #:io/term
    #:implement-monad-io-term)
-  (:import-from #:simple-io/unique
+  (:import-from #:io/unique
    #:implement-monad-io-unique)
   (:export
    #:implement-monad-io-all))
-(in-package :simple-io/io-all)
+(in-package :io/io-all)
 
 (cl:defmacro implement-monad-io-all (monad)
   `(progn

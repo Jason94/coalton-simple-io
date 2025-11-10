@@ -1,18 +1,18 @@
 (cl:in-package :cl-user)
-(defpackage :simple-io/thread
+(defpackage :io/thread
   (:use
    #:coalton
    #:coalton-prelude
    #:coalton-library/functions
-   #:simple-io/utils
-   #:simple-io/monad-io)
+   #:io/utils
+   #:io/monad-io)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
    #:LoopT)
   (:local-nicknames
    (:t #:coalton-threads/thread)
    (:st #:coalton-library/monad/statet)
    (:env #:coalton-library/monad/environment)
-   (:io #:simple-io/io))
+   (:io #:io/io))
   (:export
    #:IoThread
    #:MonadIoThread
@@ -24,7 +24,7 @@
    
    #:implement-monad-io-thread
    ))
-(in-package :simple-io/thread)
+(in-package :io/thread)
 
 (named-readtables:in-readtable coalton:coalton)
 

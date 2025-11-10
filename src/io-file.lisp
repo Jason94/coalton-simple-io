@@ -1,11 +1,11 @@
 (cl:in-package :cl-user)
-(defpackage :simple-io/file
+(defpackage :io/file
   (:use
    #:coalton
    #:coalton-prelude
    #:coalton-library/functions
-   #:simple-io/utils
-   #:simple-io/monad-io)
+   #:io/utils
+   #:io/monad-io)
   (:import-from #:coalton-library/types
    #:RuntimeRepr)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
@@ -14,7 +14,7 @@
    (:file #:coalton-library/file)
    (:st   #:coalton-library/monad/statet)
    (:env  #:coalton-library/monad/environment)
-   (:io #:simple-io/io))
+   (:io #:io/io))
   (:export
    #:MonadIoFile
    #:derive-monad-io-file
@@ -63,7 +63,7 @@
    #:do-with-temp-directory
    #:implement-monad-io-file
    ))
-(in-package :simple-io/file)
+(in-package :io/file)
 
 (named-readtables:in-readtable coalton:coalton)
 

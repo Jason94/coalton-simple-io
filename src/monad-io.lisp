@@ -1,10 +1,10 @@
 (cl:in-package :cl-user)
-(defpackage :simple-io/monad-io
+(defpackage :io/monad-io
   (:use
    #:coalton
    #:coalton-prelude
    #:coalton-library/functions
-   #:simple-io/utils)
+   #:io/utils)
   (:import-from #:coalton-library/experimental/loops
    #:dolist)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
@@ -27,7 +27,7 @@
    #:do-foreach-io
    #:run-as!
    ))
-(in-package :simple-io/monad-io)
+(in-package :io/monad-io)
 
 (named-readtables:in-readtable coalton:coalton)
 

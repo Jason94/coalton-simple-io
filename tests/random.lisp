@@ -1,14 +1,14 @@
-(defpackage :coalton-simple-io/tests/random
+(defpackage :coalton-io/tests/random
   (:use #:coalton #:coalton-prelude #:coalton-testing
-        #:simple-io/io
-        #:simple-io/random)
+        #:io/io
+        #:io/random)
   )
-(in-package :coalton-simple-io/tests/random)
+(in-package :coalton-io/tests/random)
 
 (named-readtables:in-readtable coalton:coalton)
 
-(fiasco:define-test-package #:coalton-simple-io/tests/random-fiasco)
-(coalton-fiasco-init #:coalton-simple-io/tests/random-fiasco)
+(fiasco:define-test-package #:coalton-io/tests/random-fiasco)
+(coalton-fiasco-init #:coalton-io/tests/random-fiasco)
 
 (define-test test-random-integer-range ()
   (let result =

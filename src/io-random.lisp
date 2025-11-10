@@ -1,17 +1,17 @@
 (cl:in-package :cl-user)
-(defpackage :simple-io/random
+(defpackage :io/random
   (:use
    #:coalton
    #:coalton-prelude
    #:coalton-library/functions
-   #:simple-io/utils
-   #:simple-io/monad-io)
+   #:io/utils
+   #:io/monad-io)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
    #:LoopT)
   (:local-nicknames
    (:st  #:coalton-library/monad/statet)
    (:env #:coalton-library/monad/environment)
-   (:io #:simple-io/io))
+   (:io #:io/io))
   (:export
    #:MonadIoRandom
    #:derive-monad-io-random
@@ -24,7 +24,7 @@
    #:random_
    #:implement-monad-io-random
    ))
-(in-package :simple-io/random)
+(in-package :io/random)
 
 (named-readtables:in-readtable coalton:coalton)
 

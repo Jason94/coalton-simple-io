@@ -1,14 +1,14 @@
-(defpackage :coalton-simple-io/tests/mut
+(defpackage :coalton-io/tests/mut
   (:use #:coalton #:coalton-prelude #:coalton-testing
-        #:simple-io/io
-        #:simple-io/monad-io
-        #:simple-io/mut))
-(in-package :coalton-simple-io/tests/mut)
+        #:io/io
+        #:io/monad-io
+        #:io/mut))
+(in-package :coalton-io/tests/mut)
 
 (named-readtables:in-readtable coalton:coalton)
 
-(fiasco:define-test-package #:coalton-simple-io/tests/mut-fiasco)
-(coalton-fiasco-init #:coalton-simple-io/tests/mut-fiasco)
+(fiasco:define-test-package #:coalton-io/tests/mut-fiasco)
+(coalton-fiasco-init #:coalton-io/tests/mut-fiasco)
 
 (define-test test-mut-new-read ()
   (is (== 10

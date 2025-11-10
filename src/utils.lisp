@@ -1,12 +1,12 @@
 (cl:in-package :cl-user)
-(defpackage :simple-io/utils
+(defpackage :io/utils
   (:use
    #:coalton
    #:coalton-prelude)
   (:export
    #:compose2
    ))
-(in-package :simple-io/utils)
+(in-package :io/utils)
 
 (named-readtables:in-readtable coalton:coalton)
 

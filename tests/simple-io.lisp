@@ -1,18 +1,18 @@
-(defpackage coalton-simple-io/tests/io
+(defpackage coalton-io/tests/io
   (:use #:coalton #:coalton-prelude #:coalton-testing
-        #:simple-io/io
-        #:simple-io/monad-io)
+        #:io/io
+        #:io/monad-io)
   (:local-nicknames
    (:l #:coalton-library/list)
    (:c #:coalton-library/cell))
   )
-(in-package :coalton-simple-io/tests/io)
+(in-package :coalton-io/tests/io)
 
 (named-readtables:in-readtable coalton:coalton)
 
-(fiasco:define-test-package #:coalton-simple-io/tests/io-fiasco)
+(fiasco:define-test-package #:coalton-io/tests/io-fiasco)
 
-(coalton-fiasco-init #:coalton-simple-io/tests/io-fiasco)
+(coalton-fiasco-init #:coalton-io/tests/io-fiasco)
 
 (coalton-toplevel
   (declare io-const (:a -> IO :a))

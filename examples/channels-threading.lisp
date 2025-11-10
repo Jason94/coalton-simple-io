@@ -1,22 +1,22 @@
 (cl:in-package :cl-user)
-(defpackage :simple-io/examples/channels-threading
+(defpackage :io/examples/channels-threading
   (:use
    #:coalton
    #:coalton-prelude
-   #:simple-io/io
-   #:simple-io/thread
-   #:simple-io/term
-   #:simple-io/random
+   #:io/io
+   #:io/thread
+   #:io/term
+   #:io/random
    #:coalton-library/experimental/do-control-core
    #:coalton-library/experimental/do-control-loops)
   (:local-nicknames
    (:s #:coalton-library/string)
    (:f_ #:coalton-library/file)
-   (:f #:simple-io/file)
+   (:f #:io/file)
    (:r #:coalton-library/result)
-   (:mv #:simple-io/mvar)
-   (:m #:simple-io/mut)))
-(in-package :simple-io/examples/channels-threading)
+   (:mv #:io/mvar)
+   (:m #:io/mut)))
+(in-package :io/examples/channels-threading)
 
 (named-readtables:in-readtable coalton:coalton)
 

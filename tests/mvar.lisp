@@ -1,17 +1,17 @@
-(defpackage :coalton-simple-io/tests/mvar
+(defpackage :coalton-io/tests/mvar
   (:use #:coalton #:coalton-prelude #:coalton-testing
-        #:simple-io/io
-        #:simple-io/mvar
-        #:simple-io/thread)
+        #:io/io
+        #:io/mvar
+        #:io/thread)
   (:local-nicknames
    (:l #:coalton-library/list))
   )
-(in-package :coalton-simple-io/tests/mvar)
+(in-package :coalton-io/tests/mvar)
 
 (named-readtables:in-readtable coalton:coalton)
 
-(fiasco:define-test-package #:coalton-simple-io/tests/mvar-fiasco)
-(coalton-fiasco-init #:coalton-simple-io/tests/mvar-fiasco)
+(fiasco:define-test-package #:coalton-io/tests/mvar-fiasco)
+(coalton-fiasco-init #:coalton-io/tests/mvar-fiasco)
 
 ;;;
 ;;; Single threaded tests

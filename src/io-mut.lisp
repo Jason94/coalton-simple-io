@@ -1,18 +1,18 @@
 (cl:in-package :cl-user)
-(defpackage :simple-io/mut
+(defpackage :io/mut
   (:use
    #:coalton
    #:coalton-prelude
    #:coalton-library/functions
-   #:simple-io/utils
-   #:simple-io/monad-io)
+   #:io/utils
+   #:io/monad-io)
   (:import-from #:coalton-library/experimental/loops
    #:dolist)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
    #:LoopT)
   (:local-nicknames
-   (:at #:simple-io/atomics_)
-   (:io #:simple-io/io)
+   (:at #:io/atomics_)
+   (:io #:io/io)
    (:it #:coalton-library/iterator)
    (:c #:coalton-library/cell)
    (:st #:coalton-library/monad/statet)
@@ -28,7 +28,7 @@
    
    #:implement-monad-io-var
    ))
-(in-package :simple-io/mut)
+(in-package :io/mut)
 
 (named-readtables:in-readtable coalton:coalton)
 

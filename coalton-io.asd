@@ -1,5 +1,5 @@
-(defsystem "coalton-simple-io"
-  :long-name "coalton-simple-io"
+(defsystem "coalton-io"
+  :long-name "coalton-io"
   :version "0.1"
   :author "Jason Walker"
   :maintainer "Jason Walker"
@@ -11,7 +11,7 @@
                 :components
                 ((:file "utils")
                  (:file "monad-io")
-                 (:file "io")
+                 (:file "simple-io")
                  (:file "atomics")
                  (:file "io-mut")
                  (:file "io-term")
@@ -26,32 +26,32 @@
                  )))
   :description "Simple IO monad for Coalton."
   :long-description "Implements a *very* basic implementation of an IO monad for coalton and provides a few simple IO operations, such as console I/O."
-  :in-order-to ((test-op (test-op "coalton-simple-io/tests"))))
+  :in-order-to ((test-op (test-op "coalton-io/tests"))))
 
-(defsystem "coalton-simple-io/tests"
+(defsystem "coalton-io/tests"
   :author "Jason Walker"
   :license "MIT"
-  :depends-on ("coalton-simple-io"
+  :depends-on ("coalton-io"
                "coalton/testing"
                "fiasco")
   :components ((:module "tests"
                 :serial t
                 :components
-                ((:file "io")
+                ((:file "simple-io")
                  (:file "mut")
                  (:file "random")
                  (:file "thread")
                  (:file "mvar")
                  (:file "package"))))
-  :description "Test system for coalton-simple-io"
-  :perform (test-op (op c) (symbol-call '#:coalton-simple-io/tests '#:run-tests)))
+  :description "Test system for coalton-io"
+  :perform (test-op (op c) (symbol-call '#:coalton-io/tests '#:run-tests)))
 
-(defsystem "coalton-simple-io/examples"
+(defsystem "coalton-io/examples"
   :author "Jason Walker"
   :license "MIT"
-  :depends-on ("coalton-simple-io")
+  :depends-on ("coalton-io")
   :components ((:module "examples"
                 :components
                 ((:file "channels-threading")
                  (:file "hangman"))))
-  :description "Example programs for coalton-simple-io.")
+  :description "Example programs for coalton-io.")

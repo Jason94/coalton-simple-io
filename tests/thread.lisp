@@ -1,17 +1,17 @@
-(defpackage :coalton-simple-io/tests/thread
+(defpackage :coalton-io/tests/thread
   (:use #:coalton #:coalton-prelude #:coalton-testing
-        #:simple-io/io
-        #:simple-io/thread
-        #:simple-io/mut)
+        #:io/io
+        #:io/thread
+        #:io/mut)
   (:local-nicknames
    (:lk #:coalton-threads/lock))
   )
-(in-package :coalton-simple-io/tests/thread)
+(in-package :coalton-io/tests/thread)
 
 (named-readtables:in-readtable coalton:coalton)
 
-(fiasco:define-test-package #:coalton-simple-io/tests/thread-fiasco)
-(coalton-fiasco-init #:coalton-simple-io/tests/thread-fiasco)
+(fiasco:define-test-package #:coalton-io/tests/thread-fiasco)
+(coalton-fiasco-init #:coalton-io/tests/thread-fiasco)
 
 (coalton-toplevel
   (derive Eq)

@@ -1,5 +1,5 @@
 (cl:in-package :cl-user)
-(defpackage :simple-io/examples/hangman
+(defpackage :io/examples/hangman
   (:use
    #:coalton
    #:coalton-prelude
@@ -8,8 +8,8 @@
    #:coalton-library/monad/environment
    #:coalton-library/experimental/do-control-core
    #:coalton-library/experimental/do-control-loops
-   #:simple-io/io
-   #:simple-io/term)
+   #:io/io
+   #:io/term)
   (:local-nicknames
    (:lp #:coalton-library/experimental/do-control-loops-adv)
    (:itr #:coalton-library/iterator)
@@ -17,7 +17,7 @@
    (:tp #:coalton-library/tuple)
    (:s #:coalton-library/string)))
 
-(in-package :simple-io/examples/hangman)
+(in-package :io/examples/hangman)
 
 (named-readtables:in-readtable coalton:coalton)
 

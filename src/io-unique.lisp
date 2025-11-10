@@ -1,13 +1,13 @@
 (cl:in-package :cl-user)
-(defpackage :simple-io/unique
+(defpackage :io/unique
   (:use
    #:coalton
    #:coalton-prelude
-   #:simple-io/monad-io)
+   #:io/monad-io)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
    #:LoopT)
   (:local-nicknames
-   (:at #:simple-io/atomics_)
+   (:at #:io/atomics_)
    (:st #:coalton-library/monad/statet)
    (:env #:coalton-library/monad/environment))
   (:export
@@ -19,7 +19,7 @@
    
    #:implement-monad-io-unique
    ))
-(in-package :simple-io/unique)
+(in-package :io/unique)
 
 (named-readtables:in-readtable coalton:coalton)
 

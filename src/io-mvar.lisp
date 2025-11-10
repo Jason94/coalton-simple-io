@@ -1,11 +1,11 @@
 (cl:in-package :cl-user)
-(defpackage :simple-io/mvar
+(defpackage :io/mvar
   (:use
    #:coalton
    #:coalton-prelude
    #:coalton-library/functions
-   #:simple-io/utils
-   #:simple-io/monad-io)
+   #:io/utils
+   #:io/monad-io)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
    #:LoopT)
   (:local-nicknames
@@ -14,7 +14,7 @@
    (:cv  #:coalton-threads/condition-variable)
    (:st  #:coalton-library/monad/statet)
    (:env #:coalton-library/monad/environment)
-   (:io #:simple-io/io))
+   (:io #:io/io))
   (:export
    #:MVar
 
@@ -42,7 +42,7 @@
    
    #:implement-monad-io-mvar
    ))
-(in-package :simple-io/mvar)
+(in-package :io/mvar)
 
 (named-readtables:in-readtable coalton:coalton)
 

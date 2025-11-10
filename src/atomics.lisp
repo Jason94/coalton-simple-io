@@ -1,4 +1,4 @@
-(defpackage #:simple-io/atomics_
+(defpackage #:io/atomics_
   (:use
    #:coalton
    #:coalton-prelude)
@@ -15,7 +15,7 @@
    #:atomic-update-swap
    #:atomic-write))
 
-(in-package #:simple-io/atomics_)
+(in-package #:io/atomics_)
 
 (named-readtables:in-readtable coalton:coalton)
 

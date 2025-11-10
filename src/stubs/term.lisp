@@ -1,22 +1,22 @@
 (cl:in-package :cl-user)
-(defpackage :simple-io/stubs/term
+(defpackage :io/stubs/term
   (:use
    #:coalton
    #:coalton-prelude
-   #:simple-io/monad-io
-   #:simple-io/term)
+   #:io/monad-io
+   #:io/term)
   (:local-nicknames
    (:l #:coalton-library/list)
    (:f #:coalton-library/monad/free)
    (:ft #:coalton-library/monad/freet)
    (:id #:coalton-library/monad/identity)
-   (:io-rand #:simple-io/random)
-   (:io-mvar #:simple-io/mvar)
-   (:io-atom #:simple-io/atomic)
-   (:io-file #:simple-io/file)
-   (:io-mut #:simple-io/mut)
-   (:io-thd #:simple-io/thread)
-   (:io-unq #:simple-io/unique)
+   (:io-rand #:io/random)
+   (:io-mvar #:io/mvar)
+   (:io-atom #:io/atomic)
+   (:io-file #:io/file)
+   (:io-mut #:io/mut)
+   (:io-thd #:io/thread)
+   (:io-unq #:io/unique)
    )
   (:export
    #:TermStubM
@@ -24,7 +24,7 @@
    #:run-term-stub
    #:run-term-stubM
    ))
-(in-package :simple-io/stubs/term)
+(in-package :io/stubs/term)
 
 (named-readtables:in-readtable coalton:coalton)
 

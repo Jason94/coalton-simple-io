@@ -1,4 +1,13 @@
-# Coalton-Simple-Io - Simple IO monad for Coalton.
+# Coalton-Io - Write Pure, Functional Applications for Coalton
+
+`coalton-io` provides tools to write pure, functional programs in Coalton that can perform necessary tasks like:
+* Mutable data
+* Random numbers
+* Terminal & File IO
+* Multithreading
+* Safely sharing data between threads
+
+`coalton-io` also provides all of this functionality for free if you want to write your own underlying effect type.
 
 ## Example Usage
 

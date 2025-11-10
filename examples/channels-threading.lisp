@@ -62,13 +62,11 @@
 
   (declare parser-thread (mv:MChan (Optional String) -> mv:MChan (Optional Integer) -> IO Unit))
   (define (parser-thread mchan-input mchan-int)
-    (do
-     (msg <- (mv:pop-chan mchan-input))
-     (do-if-not-val (str msg)
-           (mv:push-chan mchan-int None)
-       (do-when-val (x (s:parse-int str))
-         (mv:push-chan mchan-int (Some x)))
-       (parser-thread mchan-input mchan-int))))
+    (do-if-not-valM (str (mv:pop-chan mchan-input))
+          (mv:push-chan mchan-int None)
+      (do-when-val (x (s:parse-int str))
+        (mv:push-chan mchan-int (Some x)))
+      (parser-thread mchan-input mchan-int)))
 
   (declare summer-thread (mv:MChan (Optional Integer) -> mv:MVar Integer -> IO Unit))
   (define (summer-thread mchan-int mvar-sum)

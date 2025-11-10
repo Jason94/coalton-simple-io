@@ -23,8 +23,9 @@
    #:derive-monad-io
    #:wrap-io_
    #:map-into-io
-   #:do-map-into-io
    #:foreach-io
+
+   #:do-map-into-io
    #:do-foreach-io
    ))
 (in-package :simple-io/io)

@@ -115,7 +115,7 @@
 
   (declare run-hangman (HangmanConf -> HangmanM :a -> :a))
   (define (run-hangman conf m)
-    (run!
+    (run-io!
      (map tp:snd
           (run-stateT
            (run-envT m conf)

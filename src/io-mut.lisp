@@ -5,13 +5,14 @@
    #:coalton-prelude
    #:coalton-library/functions
    #:simple-io/utils
-   #:simple-io/io)
+   #:simple-io/monad-io)
   (:import-from #:coalton-library/experimental/loops
    #:dolist)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
    #:LoopT)
   (:local-nicknames
    (:at #:simple-io/atomics_)
+   (:io #:simple-io/io)
    (:it #:coalton-library/iterator)
    (:c #:coalton-library/cell)
    (:st #:coalton-library/monad/statet)
@@ -24,6 +25,8 @@
    #:read
    #:write
    #:modify
+   
+   #:implement-monad-io-var
    ))
 (in-package :simple-io/mut)
 
@@ -49,34 +52,34 @@
      (Var :a -> (:a -> :a) -> :m :a)))
 
   (inline)
-  (declare new-var% (:a -> IO (Var :a)))
+  (declare new-var% (MonadIo :m => :a -> :m (Var :a)))
   (define (new-var% val)
     (wrap-io (Var% (c:new val))))
 
   (inline)
-  (declare read% (Var :a -> IO :a))
+  (declare read% (MonadIo :m => Var :a -> :m :a))
   (define (read% (Var% cel))
     (wrap-io (c:read cel)))
 
   (inline)
-  (declare write% (Var :a -> :a -> IO :a))
+  (declare write% (MonadIo :m => Var :a -> :a -> :m :a))
   (define (write% (Var% cel) val)
     "Set the value in an Var and return the old value."
     (wrap-io
       (c:swap! cel val)))
 
   (inline)
-  (declare modify% (Var :a -> (:a -> :a) -> IO :a))
+  (declare modify% (MonadIo :m => Var :a -> (:a -> :a) -> :m :a))
   (define (modify% (Var% cel) f)
     "Modify the value in an Var and return the old value."
-    (wrap-io (c:update-swap! f cel)))
+    (wrap-io (c:update-swap! f cel))))
 
-  (define-instance (MonadIoVar IO)
-    (define new-var new-var%)
+(cl:defmacro implement-monad-io-var (monad)
+  `(define-instance (MonadIoVar ,monad)
+     (define new-var new-var%)
     (define read read%)
     (define write write%)
-    (define modify modify%))
-  )
+    (define modify modify%)))
 
 (cl:defmacro derive-monad-var (monad-param monadT-form)
   "Automatically derive an instance of MonadIoVar for a monad transformer.
@@ -98,3 +101,11 @@ Example:
   (derive-monad-var :m (st:StateT :s :m))
   (derive-monad-var :m (env:EnvT :e :m))
   (derive-monad-var :m (LoopT :m)))
+
+;;
+;; Simple IO Implementation
+;;
+
+(coalton-toplevel
+
+  (implement-monad-io-var io:IO))

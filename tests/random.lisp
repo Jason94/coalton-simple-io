@@ -12,7 +12,7 @@
 
 (define-test test-random-integer-range ()
   (let result =
-    (run!
+    (run-io!
      (do
       (let limit = (the UFix 10))
       (rs <- make-random-state)
@@ -29,7 +29,7 @@
 
 (define-test test-random_-integer-range ()
   (let result =
-    (run!
+    (run-io!
      (do
       (let limit = (the UFix 10))
       ;; check 200 draws are in [0, limit)
@@ -45,7 +45,7 @@
 
 (define-test test-random-float-range ()
   (let result =
-    (run!
+    (run-io!
      (do
       (let limit = 1.5)
       (rs <- make-random-state)
@@ -63,10 +63,10 @@
 (define-test test-copy-state-produces-identical-sequence ()
   (let limit = (the UFix 100))
   (let result =
-    (run!
+    (run-io!
       (do
         (rs1 <- make-random-state)
-        (let rs2 = (copy-random-state rs1))
+        (rs2 <- (copy-random-state rs1))
         ;; Compare 100 draws pairwise without building lists
         (rec % ((n-to-check 200))
           (if (== n-to-check 0)

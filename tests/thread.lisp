@@ -33,7 +33,7 @@
 
 (define-test test-fork-executes ()
   (let result =
-    (run!
+    (run-io!
       (do
         (lock <- (wrap-io (lk:new)))
         (flag <- (new-var Unset))
@@ -59,7 +59,7 @@
 
 (define-test test-do-fork-executes ()
   (let result =
-    (run!
+    (run-io!
       (do
         (lock <- (wrap-io (lk:new)))
         (flag <- (new-var Unset))

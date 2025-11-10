@@ -10,8 +10,9 @@
                 :serial t
                 :components
                 ((:file "utils")
-                 (:file "atomics")
+                 (:file "monad-io")
                  (:file "io")
+                 (:file "atomics")
                  (:file "io-mut")
                  (:file "io-term")
                  (:file "io-random")
@@ -20,6 +21,7 @@
                  (:file "io-atomic")
                  (:file "io-mvar")
                  (:file "io-unique")
+                 (:file "io-all")
                  (:file "stubs/term")
                  )))
   :description "Simple IO monad for Coalton."

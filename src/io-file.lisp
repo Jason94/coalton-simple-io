@@ -5,7 +5,7 @@
    #:coalton-prelude
    #:coalton-library/functions
    #:simple-io/utils
-   #:simple-io/io)
+   #:simple-io/monad-io)
   (:import-from #:coalton-library/types
    #:RuntimeRepr)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
@@ -53,7 +53,9 @@
 
    #:do-with-open-file
    #:do-with-temp-file
-   #:do-with-temp-directory))
+   #:do-with-temp-directory
+   #:implement-monad-io-file
+   ))
 (in-package :simple-io/file)
 
 (named-readtables:in-readtable coalton:coalton)
@@ -130,123 +132,120 @@ Usage:
   ;; IO-backed primitives (internal, %-suffixed)
   ;;
 
-  (declare exists?% (Into :a file:Pathname => :a -> IO (Result file:FileError Boolean)))
+  (declare exists?% (Into :a file:Pathname MonadIo :m MonadIo :m MonadIo :m => :a -> :m (Result file:FileError Boolean)))
   (define (exists?% pth)
     (wrap-io (file:exists? pth)))
 
-  (declare file-exists?% (Into :a file:Pathname => :a -> IO (Result file:FileError Boolean)))
+  (declare file-exists?% (Into :a file:Pathname MonadIo :m MonadIo :m MonadIo :m => :a -> :m (Result file:FileError Boolean)))
   (define (file-exists?% pth)
     (wrap-io (file:file-exists? pth)))
 
-  (declare directory-exists?% (Into :a file:Pathname => :a -> IO (Result file:FileError Boolean)))
+  (declare directory-exists?% (Into :a file:Pathname MonadIo :m MonadIo :m MonadIo :m => :a -> :m (Result file:FileError Boolean)))
   (define (directory-exists?% pth)
     (wrap-io (file:directory-exists? pth)))
 
-  (declare open% (file:File :a => file:StreamOptions -> IO (Result file:FileError (file:FileStream :a))))
+  (declare open% (file:File :a MonadIo :m => file:StreamOptions -> :m (Result file:FileError (file:FileStream :a))))
   (define (open% opts)
     (wrap-io (file:open opts)))
 
-  (declare close% ((file:FileStream :a) -> IO (Result file:FileError :b)))
+  (declare close% (MonadIo :m MonadIo :m => ((file:FileStream :a) -> :m (Result file:FileError :b))))
   (define (close% fs)
     (wrap-io (file:close fs)))
 
-  (declare abort% ((file:FileStream :a) -> IO (Result file:FileError :b)))
+  (declare abort% (MonadIo :m MonadIo :m => ((file:FileStream :a) -> :m (Result file:FileError :b))))
   (define (abort% fs)
     (wrap-io (file:abort fs)))
 
-  (declare with-open-file%
-           (file:File :a => file:StreamOptions
-            -> ((file:FileStream :a) -> IO (Result file:FileError :b))
-            -> IO (Result file:FileError :b)))
+  (declare with-open-file% (file:File :a MonadIo :m => file:StreamOptions
+            -> ((file:FileStream :a) -> :m (Result file:FileError :b))
+            -> :m (Result file:FileError :b)))
   (define (with-open-file% opts k)
     "IO version of FILE:WITH-OPEN-FILE where the continuation returns IO."
     (wrap-io (file:with-open-file opts (fn (fs) (run! (k fs))))))
 
-  (declare with-temp-file%
-           (file:File :a => String
-            -> ((file:FileStream :a) -> IO (Result file:FileError :b))
-            -> IO (Result file:FileError :b)))
+  (declare with-temp-file% (file:File :a MonadIo :m => String
+            -> ((file:FileStream :a) -> :m (Result file:FileError :b))
+            -> :m (Result file:FileError :b)))
   (define (with-temp-file% file-type k)
     (wrap-io (file:with-temp-file file-type (fn (fs) (run! (k fs))))))
 
-  (declare with-temp-directory%
-           ((file:Pathname -> IO (Result file:FileError :a)) -> IO (Result file:FileError :a)))
+  (declare with-temp-directory% ((file:Pathname -> :m (Result file:FileError :a)) -> :m (Result file:FileError :a)))
   (define (with-temp-directory% k)
     (wrap-io (file:with-temp-directory (fn (dir) (run! (k dir))))))
 
-  (declare copy% ((Into :a file:Pathname) (Into :b file:Pathname) => :a -> :b -> IO (Result file:FileError Unit)))
+  (declare copy% ((Into :a file:Pathname) (Into :b file:Pathname) MonadIo :m MonadIo :m => :a -> :b -> :m (Result file:FileError Unit)))
   (define (copy% a b)
     (wrap-io (file:copy! a b)))
 
-  (declare create-directory% (Into :p file:Pathname => :p -> IO (Result file:FileError file:Pathname)))
+  (declare create-directory% (Into :p file:Pathname MonadIo :m MonadIo :m MonadIo :m => :p -> :m (Result file:FileError file:Pathname)))
   (define (create-directory% p)
     (wrap-io (file:create-directory! p)))
 
-  (declare delete-file% (Into :p file:Pathname => :p -> IO (Result file:FileError Unit)))
+  (declare delete-file% (Into :p file:Pathname MonadIo :m MonadIo :m MonadIo :m => :p -> :m (Result file:FileError Unit)))
   (define (delete-file% p)
     (wrap-io (file:delete-file! p)))
 
-  (declare remove-directory% (Into :p file:Pathname => :p -> IO (Result file:FileError :p)))
+  (declare remove-directory% (Into :p file:Pathname MonadIo :m MonadIo :m MonadIo :m => :p -> :m (Result file:FileError :p)))
   (define (remove-directory% p)
     (wrap-io (file:remove-directory! p)))
 
-  (declare remove-directory-recursive% (Into :p file:Pathname => :p -> IO (Result file:FileError Unit)))
+  (declare remove-directory-recursive% (Into :p file:Pathname MonadIo :m MonadIo :m MonadIo :m => :p -> :m (Result file:FileError Unit)))
   (define (remove-directory-recursive% p)
     (wrap-io (file:remove-directory-recursive! p)))
 
-  (declare system-relative-pathname% (Into :sys String => :sys -> String -> IO (Result file:FileError file:Pathname)))
+  (declare system-relative-pathname% (Into :sys String MonadIo :m MonadIo :m MonadIo :m => :sys -> String -> :m (Result file:FileError file:Pathname)))
   (define (system-relative-pathname% sys name)
     (wrap-io (file:system-relative-pathname sys name)))
 
-  (declare read-file-to-string% (Into :p file:Pathname => :p -> IO (Result file:FileError String)))
+  (declare read-file-to-string% (Into :p file:Pathname MonadIo :m MonadIo :m MonadIo :m => :p -> :m (Result file:FileError String)))
   (define (read-file-to-string% p)
     (wrap-io (file:read-file-to-string p)))
 
-  (declare read-file-lines% (Into :p file:Pathname => :p -> IO (Result file:FileError (List String))))
+  (declare read-file-lines% (Into :p file:Pathname MonadIo :m => :p -> :m (Result file:FileError (List String))))
   (define (read-file-lines% p)
     (wrap-io (file:read-file-lines p)))
 
-  (declare write-to-file% ((Into :p file:Pathname) (file:File :a) (RuntimeRepr :a) => :p -> (Vector :a) -> IO (Result file:FileError Unit)))
+  (declare write-to-file% ((Into :p file:Pathname) (file:File :a) (RuntimeRepr :a) MonadIo :m MonadIo :m => :p -> (Vector :a) -> :m (Result file:FileError Unit)))
   (define (write-to-file% p v)
     (wrap-io (file:write-to-file! p v)))
 
-  (declare append-to-file% ((Into :p file:Pathname) (file:File :a) (RuntimeRepr :a) => :p -> (Vector :a) -> IO (Result file:FileError Unit)))
+  (declare append-to-file% ((Into :p file:Pathname) (file:File :a) (RuntimeRepr :a) MonadIo :m MonadIo :m => :p -> (Vector :a) -> :m (Result file:FileError Unit)))
   (define (append-to-file% p v)
     (wrap-io (file:append-to-file! p v)))
 
-  (declare read-char% ((file:FileStream Char) -> IO (Result file:FileError Char)))
+  (declare read-char% (MonadIo :m MonadIo :m => ((file:FileStream Char) -> :m (Result file:FileError Char))))
   (define (read-char% fs)
     (wrap-io (file:read-char fs)))
 
-  (declare read-line% ((file:FileStream Char) -> IO (Result file:FileError String)))
+  (declare read-line% (MonadIo :m MonadIo :m => ((file:FileStream Char) -> :m (Result file:FileError String))))
   (define (read-line% fs)
     (wrap-io (file:read-line fs)))
 
-  (declare write-char% ((file:FileStream Char) -> Char -> IO (Result file:FileError Unit)))
+  (declare write-char% (MonadIo :m MonadIo :m => ((file:FileStream Char) -> Char -> :m (Result file:FileError Unit))))
   (define (write-char% fs c)
     (wrap-io (file:write-char fs c)))
 
-  (declare write-line% ((file:FileStream Char) -> String -> IO (Result file:FileError Unit)))
+  (declare write-line% (MonadIo :m MonadIo :m => ((file:FileStream Char) -> String -> :m (Result file:FileError Unit))))
   (define (write-line% fs s)
     (wrap-io (file:write-line fs s)))
 
-  (declare write-string% ((file:FileStream Char) -> String -> IO (Result file:FileError Unit)))
+  (declare write-string% (MonadIo :m MonadIo :m => ((file:FileStream Char) -> String -> :m (Result file:FileError Unit))))
   (define (write-string% fs s)
     (wrap-io (file:write-string fs s)))
 
-  (declare read-file-to-vector% (file:File :a => (file:FileStream :a) -> IO (Result file:FileError (Vector :a))))
+  (declare read-file-to-vector% (file:File :a MonadIo :m => (file:FileStream :a) -> :m (Result file:FileError (Vector :a))))
   (define (read-file-to-vector% fs)
     (wrap-io (file:read-file-to-vector fs)))
 
-  (declare read-vector% (file:File :a => (file:FileStream :a) -> UFix -> IO (Result file:FileError (Vector :a))))
+  (declare read-vector% (file:File :a MonadIo :m => (file:FileStream :a) -> UFix -> :m (Result file:FileError (Vector :a))))
   (define (read-vector% fs n)
     (wrap-io (file:read-vector fs n)))
 
-  (declare write-vector% ((file:File :a) (RuntimeRepr :a) => (file:FileStream :a) -> (Vector :a) -> IO (Result file:FileError Unit)))
+  (declare write-vector% ((file:File :a) (RuntimeRepr :a) MonadIo :m MonadIo :m => (file:FileStream :a) -> (Vector :a) -> :m (Result file:FileError Unit)))
   (define (write-vector% fs v)
     (wrap-io (file:write-vector fs v)))
 
-  (declare set-file-position% ((file:FileStream :a) -> UFix -> IO (Result file:FileError Unit)))
+  (declare set-file-position% (MonadIo :m MonadIo :m => ((file:FileStream :a) -> UFix -> :m (Result file:FileError Unit))))
   (define (set-file-position% fs pos)
     (wrap-io (file:set-file-position fs pos)))
 
@@ -276,16 +275,16 @@ Usage:
     (with-open-file
      "Opens a file stream, performs `thunk` on it, then closes the stream."
      (file:File :a => file:StreamOptions
-                     -> ((file:FileStream :a) -> IO (Result file:FileError :b))
+                     -> ((file:FileStream :a) -> :m (Result file:FileError :b))
                      -> :m (Result file:FileError :b)))
     (with-temp-file
      "Performs an operation `thunk` on a temporary file. File type extensions need to include `.`"
      (file:File :a => String
-                     -> ((file:FileStream :a) -> IO (Result file:FileError :b))
+                     -> ((file:FileStream :a) -> :m (Result file:FileError :b))
                      -> :m (Result file:FileError :b)))
     (with-temp-directory
      "Performs an operation `thunk` inside a temporary directory."
-     ((file:Pathname -> IO (Result file:FileError :a))
+     ((file:Pathname -> :m (Result file:FileError :a))
                           -> :m (Result file:FileError :a)))
 
     (copy
@@ -346,9 +345,12 @@ Usage:
      "Sets the file position of a file stream."
      ((file:FileStream :a) -> UFix -> :m (Result file:FileError Unit))))
 
-  ;; IO instance
-  (define-instance (MonadIoFile IO)
-    (define exists? exists?%)
+  ;; Implementation macro for a concrete MonadIo
+  
+
+(cl:defmacro implement-monad-io-file (monad)
+  `(define-instance (MonadIoFile ,monad)
+     (define exists? exists?%)
     (define file-exists? file-exists?%)
     (define directory-exists? directory-exists?%)
 
@@ -382,6 +384,7 @@ Usage:
     (define write-to-file write-to-file%)
     (define append-to-file append-to-file%)
     (define set-file-position set-file-position%))
+
 
   (derive-monad-io-file :m (st:StateT :s :m))
   (derive-monad-io-file :m (env:EnvT :e :m))

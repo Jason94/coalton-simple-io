@@ -5,7 +5,7 @@
    #:coalton-prelude
    #:coalton-library/functions
    #:simple-io/utils
-   #:simple-io/io)
+   #:simple-io/monad-io)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
    #:LoopT)
   (:local-nicknames
@@ -19,6 +19,8 @@
    #:fork
    #:do-fork
    #:sleep
+   
+   #:implement-monad-io-thread
    ))
 (in-package :simple-io/thread)
 
@@ -40,7 +42,7 @@ Returns the handle to the thread."
      (UFix -> :m Unit)))
 
   (inline)
-  (declare fork% (IO :a -> IO IoThread))
+  (declare fork% (MonadIo :m => (:m :a -> :m IoThread)))
   (define (fork% op)
     (wrap-io (IoThread%
               (t:spawn (fn ()
@@ -48,16 +50,20 @@ Returns the handle to the thread."
                          Unit)))))
 
   (inline)
-  (declare sleep% (UFix -> IO Unit))
+  (declare sleep% (MonadIo :m => (UFix -> :m Unit)))
   (define (sleep% msecs)
     (wrap-io
       (lisp :a (msecs)
         (cl:sleep (cl:/ msecs 1000)))
       Unit))
 
-  (define-instance (MonadIoThread IO)
-    (define fork fork%)
+  
+
+(cl:defmacro implement-monad-io-thread (monad)
+  `(define-instance (MonadIoThread ,monad)
+     (define fork fork%)
     (define sleep sleep%))
+
 
   )
 

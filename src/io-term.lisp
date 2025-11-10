@@ -4,7 +4,7 @@
    #:coalton
    #:coalton-prelude
    #:coalton-library/functions
-   #:simple-io/io)
+   #:simple-io/monad-io)
   (:import-from #:coalton-library/monad/statet
    #:StateT)
   (:import-from #:coalton-library/monad/environment
@@ -17,7 +17,9 @@
 
    #:write
    #:write-line
-   #:read-line))
+   #:read-line
+   #:implement-monad-io-term
+   ))
 (in-package :simple-io/term)
 
 (named-readtables:in-readtable coalton:coalton)
@@ -34,7 +36,7 @@
      "Read a line from standard input."
      (:m String)))
 
-  (declare write% (Into :a String => :a -> IO Unit))
+  (declare write% (Into :a String MonadIo :m => :a -> :m Unit))
   (define (write% obj)
     (let str = (the String (into obj)))
     (wrap-io
@@ -42,7 +44,7 @@
         (cl:format cl:t "~a" str))
       Unit))
 
-  (declare write-line% ((Into :a String) => :a -> IO Unit))
+  (declare write-line% ((Into :a String) MonadIo :m => :a -> :m Unit))
   (define (write-line% obj)
     (let str = (the String (into obj)))
     (wrap-io
@@ -50,15 +52,19 @@
         (cl:format cl:t "~a~%" str))
       Unit))
 
-  (declare read-line% (IO String))
+  (declare read-line% (MonadIo :m => (:m String)))
   (define read-line%
     (wrap-io (lisp :a ()
                (cl:read-line))))
 
-  (define-instance (MonadIoTerm IO)
-    (define write write%)
+  
+
+(cl:defmacro implement-monad-io-term (monad)
+  `(define-instance (MonadIoTerm ,monad)
+     (define write write%)
     (define write-line write-line%)
-    (define read-line read-line%)))
+    (define read-line read-line%))
+)
 
 (cl:defmacro derive-monad-io-term (monadT-form)
   "Automatically derive an instance of MonadIoTerm for a monad transformer.

@@ -5,7 +5,7 @@
    #:coalton-prelude
    #:coalton-library/functions
    #:simple-io/utils
-   #:simple-io/io)
+   #:simple-io/monad-io)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
    #:LoopT)
   (:local-nicknames
@@ -38,6 +38,8 @@
    #:new-empty-chan
    #:push-chan
    #:pop-chan
+   
+   #:implement-monad-io-mvar
    ))
 (in-package :simple-io/mvar)
 
@@ -91,21 +93,21 @@ the value. Blocks until the MVar is full."
      (MVar :a -> (:a -> IO :b) -> :m :b)))
 
   (inline)
-  (declare new-mvar% (:a -> IO (MVar :a)))
+  (declare new-mvar% (MonadIo :m => (:a -> :m (MVar :a))))
   (define (new-mvar% val)
     "Create a new MVar containing VAL."
     (wrap-io
       (MVar (lk:new) (cv:new) (c:new (Some val)))))
 
   (inline)
-  (declare new-empty-mvar% (IO (MVar :a)))
+  (declare new-empty-mvar% (MonadIo :m => (:m (MVar :a))))
   (define new-empty-mvar%
     "Create a new empty MVar."
     (wrap-io
       (MVar (lk:new) (cv:new) (c:new None))))
 
   ;; TODO: Find a way to do error handling here.
-  (declare take-mvar% (MVar :a -> IO :a))
+  (declare take-mvar% (MonadIo :m => (MVar :a -> :m :a)))
   (define (take-mvar% mvar)
     (wrap-io
       (lk:acquire (.lock mvar))
@@ -122,7 +124,7 @@ the value. Blocks until the MVar is full."
         (lp))))
 
   ;; TODO: Find a way to do error handling here
-  (declare put-mvar% (MVar :a -> :a -> IO Unit))
+  (declare put-mvar% (MonadIo :m => (MVar :a -> :a -> :m Unit)))
   (define (put-mvar% mvar val)
     (wrap-io
       (let lock = (.lock mvar))
@@ -142,7 +144,7 @@ the value. Blocks until the MVar is full."
         (lp))))
 
   ;; TODO: Find a way to do error handling here
-  (declare try-take-mvar% (MVar :a -> IO (Optional :a)))
+  (declare try-take-mvar% (MonadIo :m => (MVar :a -> :m (Optional :a))))
   (define (try-take-mvar% mvar)
     (wrap-io
       (lk:acquire (.lock mvar))
@@ -157,7 +159,7 @@ the value. Blocks until the MVar is full."
          None))))
 
   ;; TODO: Find a way to do error handling here
-  (declare try-put-mvar% (MVar :a -> :a -> IO Boolean))
+  (declare try-put-mvar% (MonadIo :m => (MVar :a -> :a -> :m Boolean)))
   (define (try-put-mvar% mvar val)
     (wrap-io
       (lk:acquire (.lock mvar))
@@ -172,7 +174,7 @@ the value. Blocks until the MVar is full."
          True))))
 
   ;; TODO: Find a way to do error handling here
-  (declare read-mvar% (MVar :a -> IO :a))
+  (declare read-mvar% (MonadIo :m => (MVar :a -> :m :a)))
   (define (read-mvar% mvar)
     (wrap-io
       (lk:acquire (.lock mvar))
@@ -187,7 +189,7 @@ the value. Blocks until the MVar is full."
         (lp))))
 
   ;; TODO: Find a way to do error handling here
-  (declare swap-mvar% (MVar :a -> :a -> IO :a))
+  (declare swap-mvar% (MonadIo :m => (MVar :a -> :a -> :m :a)))
   (define (swap-mvar% mvar new-val)
     (wrap-io
       (lk:acquire (.lock mvar))
@@ -203,7 +205,7 @@ the value. Blocks until the MVar is full."
                      (lp))))))
         (lp))))
 
-  (declare is-empty-mvar% (MVar :a -> IO Boolean))
+  (declare is-empty-mvar% (MonadIo :m => (MVar :a -> :m Boolean)))
   (define (is-empty-mvar% mvar)
     (wrap-io
       (lk:acquire (.lock mvar))
@@ -214,15 +216,18 @@ the value. Blocks until the MVar is full."
       (lk:release (.lock mvar))
       result))
 
-  (declare with-mvar% (MVar :a -> (:a -> IO :b) -> IO :b))
+  (declare with-mvar% (MonadIo :m => (MVar :a -> (:a -> :m :b) -> :m :b)))
   (define (with-mvar% mvar op)
     (do
       (x <- (read-mvar% mvar))
       (result <- (op x))
       (pure result)))
 
-  (define-instance (MonadIoMVar IO)
-    (define new-mvar       new-mvar%)
+  
+
+(cl:defmacro implement-monad-io-mvar (monad)
+  `(define-instance (MonadIoMVar ,monad)
+     (define new-mvar       new-mvar%)
     (define new-empty-mvar new-empty-mvar%)
     (define take-mvar      take-mvar%)
     (define put-mvar       put-mvar%)
@@ -232,6 +237,7 @@ the value. Blocks until the MVar is full."
     (define swap-mvar      swap-mvar%)
     (define is-empty-mvar  is-empty-mvar%)
     (define with-mvar      with-mvar%))
+
   )
 
 (cl:defmacro derive-monad-io-mvar (monad-param monadT-form)
@@ -280,7 +286,7 @@ Example:
     (head-var (MVar (MVar (ChanNode :a))))
     (tail-var (MVar (MVar (ChanNode :a)))))
 
-  (declare new-empty-chan (MonadIoMVar :m => :m (MChan :a)))
+  (declare new-empty-chan (MonadIoMVar :m MonadIo :m => :m (MChan :a)))
   (define new-empty-chan
     "Create a new empty channel."
     (do
@@ -289,7 +295,7 @@ Example:
      (tail-var <- (new-mvar cell))
      (pure (MChan head-var tail-var))))
 
-  (declare push-chan (MonadIoMVar :m => MChan :a -> :a -> :m Unit))
+  (declare push-chan (MonadIoMVar :m MonadIo :m => MChan :a -> :a -> :m Unit))
   (define (push-chan chan val)
     "Push VAL onto CHAN."
     (do
@@ -298,7 +304,7 @@ Example:
      (put-mvar old-tail-var (ChanNode% val new-tail-var))
      (put-mvar (.tail-var chan) new-tail-var)))
 
-  (declare pop-chan (MonadIoMVar :m => MChan :a -> :m :a))
+  (declare pop-chan (MonadIoMVar :m MonadIo :m => MChan :a -> :m :a))
   (define (pop-chan chan)
     "Pop the front value in CHAN. Blocks while CHAN is empty."
     (do

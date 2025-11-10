@@ -3,7 +3,7 @@
   (:use
    #:coalton
    #:coalton-prelude
-   #:simple-io/io)
+   #:simple-io/monad-io)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
    #:LoopT)
   (:local-nicknames
@@ -16,6 +16,8 @@
    #:Unique
    #:new-unique
    #:to-int
+   
+   #:implement-monad-io-unique
    ))
 (in-package :simple-io/unique)
 
@@ -37,16 +39,16 @@ values across all threads."
     (define (<=> (Unique% a) (Unique% b))
       (<=> a b)))
 
-  (declare counter% (at:AtVar Integer))
+  (declare counter% (MonadIo :m => (at:AtVar Integer)))
   (define counter% (run-as! (IO (at:AtVar Integer))
                             (at:new-at-var 0)))
 
-  (declare new-unique% (IO Unique))
+  (declare new-unique% (MonadIo :m => (:m Unique)))
   (define new-unique%
     (map Unique% (at:modify-swap counter% (+ 1))))
 
   (inline)
-  (declare to-int (Unique -> Integer))
+  (declare to-int (MonadIo :m => (Unique -> Integer)))
   (define (to-int (Unique% i))
     "Convert a unique value to an integer.
 
@@ -54,8 +56,12 @@ It is guaranteed that: (/= (to-int a) (to-int b))
 for any two different Unique instances."
     i)
 
-  (define-instance (MonadIoUnique IO)
-    (define new-unique new-unique%)))
+  
+
+(cl:defmacro implement-monad-io-unique (monad)
+  `(define-instance (MonadIoUnique ,monad)
+     (define new-unique new-unique%))
+)
 
 (cl:defmacro derive-monad-io-unique (monad-param monadT-form)
   "Automatically derive an instance of MonadIoUnique for a monad transformer.

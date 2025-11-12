@@ -7,6 +7,7 @@
    #:io/thread
    #:io/term
    #:io/random
+   #:io/future
    #:coalton-library/experimental/do-control-core
    #:coalton-library/experimental/do-control-loops)
   (:local-nicknames
@@ -26,8 +27,8 @@
 ;;; It creates one thread to read lines from the file, N-WORKERS
 ;;; number of threads to parse the lines into integers, and one
 ;;; thread to sum all of the integers togother. Two MChannels pass
-;;; the data through the worker threads, and an MVar passes the total
-;;; back to the main thread when the summing is finished.
+;;; the data through the worker threads, and the main thread uses a
+;;; Future to await the final sum produced by the summer-thread.
 
 (coalton-toplevel
   (define data-filename "rands.txt")
@@ -68,8 +69,8 @@
         (mv:push-chan mchan-int (Some x)))
       (parser-thread mchan-input mchan-int)))
 
-  (declare summer-thread (mv:MChan (Optional Integer) -> mv:MVar Integer -> IO Unit))
-  (define (summer-thread mchan-int mvar-sum)
+  (declare summer-thread (mv:MChan (Optional Integer) -> IO Integer))
+  (define (summer-thread mchan-int)
     (do
      (sum <- (m:new-var 0))
      (closed-parsers <- (m:new-var 0))
@@ -80,8 +81,7 @@
               (pure True))
          (m:modify closed-parsers (+ 1))
          (map (> (into n-workers)) (m:read closed-parsers))))
-     (the-sum <- (m:read sum))
-     (mv:put-mvar mvar-sum the-sum)))
+     (m:read sum)))
 
   (declare sum-file (IO Integer))
   (define sum-file
@@ -91,14 +91,13 @@
      (write-line "Done writing file...")
      (input-chan <- mv:new-empty-chan)
      (ints-chan <- mv:new-empty-chan)
-     (sum-mvar <- mv:new-empty-mvar)
      (write-line "Forking threads...")
      (fork (reader-thread input-chan))
      (do-loop-times (_ n-workers)
        (fork (parser-thread input-chan ints-chan)))
-     (fork (summer-thread ints-chan sum-mvar))
+     (sum-fut <- (fork-future (summer-thread ints-chan)))
      (write-line "Waiting for sum...")
-     (sum <- (mv:take-mvar sum-mvar))
+     (sum <- (await sum-fut))
      (write-line (<> "Calculated sum: " (into sum)))
      (pure sum)))
   )

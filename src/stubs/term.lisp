@@ -80,7 +80,7 @@
             (rem-line-inputs read-line-inputs)
             (opm opm))
       (do
-       (step <- (ft:run-freeT opm))
+       (step <- (ft:unwrap-freeT opm))
        (match step
          ((ft:Val a)
           (let norm-written-lines =

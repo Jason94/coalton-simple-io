@@ -20,6 +20,7 @@
                  (:file "io-thread")
                  (:file "io-atomic")
                  (:file "io-mvar")
+                 (:file "io-future")
                  (:file "io-unique")
                  (:file "io-all")
                  (:file "stubs/term")

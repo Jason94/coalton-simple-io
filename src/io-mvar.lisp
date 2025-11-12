@@ -29,6 +29,7 @@
    #:try-take-mvar
    #:try-put-mvar
    #:read-mvar
+   #:try-read-mvar
    #:swap-mvar
    #:is-empty-mvar
 
@@ -82,6 +83,9 @@ True if the put succeeds."
     (read-mvar
      "Read (without removing) the value from an MVar, blocking until one is available."
      (MVar :a -> :m :a))
+    (try-read-mvar
+     "Attempt to read (without removing) the value from an MVar; returns None if empty."
+     (MVar :a -> :m (Optional :a)))
     (swap-mvar
      "Atomically replace the value in an MVar and return the old value."
      (MVar :a -> :a -> :m :a))
@@ -189,6 +193,20 @@ the value. Blocks until the MVar is full."
                      (lp))))))
         (lp))))
 
+  ;; TODO: Does this work without any locking at all?
+  (declare try-read-mvar% (MonadIo :m => MVar :a -> :m (Optional :a)))
+  (define (try-read-mvar% mvar)
+    (wrap-io
+      (lk:acquire (.lock mvar))
+      (match (c:read (.data mvar))
+        ((Some x)
+         (lk:release (.lock mvar))
+         (cv:notify (.cvar mvar))
+         (Some x))
+        ((None)
+         (lk:release (.lock mvar))
+         None))))
+
   ;; TODO: Find a way to do error handling here
   (declare swap-mvar% (MonadIo :m => MVar :a -> :a -> :m :a))
   (define (swap-mvar% mvar new-val)
@@ -234,6 +252,7 @@ the value. Blocks until the MVar is full."
      (define try-take-mvar  try-take-mvar%)
      (define try-put-mvar   try-put-mvar%)
      (define read-mvar      read-mvar%)
+     (define try-read-mvar  try-read-mvar%)
      (define swap-mvar      swap-mvar%)
      (define is-empty-mvar  is-empty-mvar%)
      (define with-mvar      with-mvar%)))
@@ -251,6 +270,7 @@ Example:
      (define try-take-mvar  (compose lift try-take-mvar))
      (define try-put-mvar   (compose2 lift try-put-mvar))
      (define read-mvar      (compose lift read-mvar))
+     (define try-read-mvar  (compose lift try-read-mvar))
      (define swap-mvar      (compose2 lift swap-mvar))
      (define is-empty-mvar  (compose lift is-empty-mvar))
      (define with-mvar      (compose2 lift with-mvar))))

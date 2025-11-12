@@ -57,6 +57,7 @@ _coalton-io_ provides the following features in these packages:
 * `io/thread` - Fork new threads which run their own `IO` operations
 * `io/atomic` - Atomic mutable variables for sharing state across threads
 * `io/mvar`   - Provides `MVar`s (synchronized single-value mutable stores to hand off data between threads) and `MChan`s (thread safe FIFO queues to stream data between threads)
+* `io/future` - Provides Futures, with standard `await` semantics
 
 If you just want to use `IO` to write an application, use `io/simple-io` to get the standard `IO` type.
 

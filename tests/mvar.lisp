@@ -1,6 +1,6 @@
 (defpackage :coalton-io/tests/mvar
   (:use #:coalton #:coalton-prelude #:coalton-testing
-        #:io/io
+        #:io/simple-io
         #:io/mvar
         #:io/thread)
   (:local-nicknames

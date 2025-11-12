@@ -1,6 +1,6 @@
 (defpackage :coalton-io/tests/mut
   (:use #:coalton #:coalton-prelude #:coalton-testing
-        #:io/io
+        #:io/simple-io
         #:io/monad-io
         #:io/mut))
 (in-package :coalton-io/tests/mut)

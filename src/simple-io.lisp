@@ -1,5 +1,5 @@
 (cl:in-package :cl-user)
-(defpackage :io/io
+(defpackage :io/simple-io
   (:use
    #:coalton
    #:coalton-prelude
@@ -28,7 +28,7 @@
    #:do-map-into-io
    #:do-foreach-io
    ))
-(in-package :io/io)
+(in-package :io/simple-io)
 
 (named-readtables:in-readtable coalton:coalton)
 

@@ -1,6 +1,6 @@
 (defpackage :coalton-io/tests/random
   (:use #:coalton #:coalton-prelude #:coalton-testing
-        #:io/io
+        #:io/simple-io
         #:io/random)
   )
 (in-package :coalton-io/tests/random)

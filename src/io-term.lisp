@@ -12,7 +12,7 @@
   (:import-from #:coalton-library/experimental/do-control-loops-adv
    #:LoopT)
   (:local-nicknames
-   (:io #:io/io))
+   (:io #:io/simple-io))
   (:export
    #:MonadIoTerm
    #:derive-monad-io-term

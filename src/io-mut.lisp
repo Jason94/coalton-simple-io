@@ -12,7 +12,7 @@
    #:LoopT)
   (:local-nicknames
    (:at #:io/atomics_)
-   (:io #:io/io)
+   (:io #:io/simple-io)
    (:it #:coalton-library/iterator)
    (:c #:coalton-library/cell)
    (:st #:coalton-library/monad/statet)

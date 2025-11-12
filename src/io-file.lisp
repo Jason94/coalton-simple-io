@@ -14,7 +14,7 @@
    (:file #:coalton-library/file)
    (:st   #:coalton-library/monad/statet)
    (:env  #:coalton-library/monad/environment)
-   (:io #:io/io))
+   (:io #:io/simple-io))
   (:export
    #:MonadIoFile
    #:derive-monad-io-file

@@ -1,6 +1,6 @@
 (defpackage :coalton-io/tests/thread
   (:use #:coalton #:coalton-prelude #:coalton-testing
-        #:io/io
+        #:io/simple-io
         #:io/thread
         #:io/mut)
   (:local-nicknames

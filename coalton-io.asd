@@ -54,5 +54,6 @@
   :components ((:module "examples"
                 :components
                 ((:file "channels-threading")
-                 (:file "hangman"))))
+                 (:file "hangman")
+                 (:file "fork-laws"))))
   :description "Example programs for coalton-io.")

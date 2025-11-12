@@ -12,7 +12,7 @@
    (:t #:coalton-threads/thread)
    (:st #:coalton-library/monad/statet)
    (:env #:coalton-library/monad/environment)
-   (:io #:io/io))
+   (:io #:io/simple-io))
   (:export
    #:IoThread
    #:MonadIoThread

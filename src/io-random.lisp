@@ -11,7 +11,7 @@
   (:local-nicknames
    (:st  #:coalton-library/monad/statet)
    (:env #:coalton-library/monad/environment)
-   (:io #:io/io))
+   (:io #:io/simple-io))
   (:export
    #:MonadIoRandom
    #:derive-monad-io-random

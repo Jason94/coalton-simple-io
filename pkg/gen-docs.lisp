@@ -6,7 +6,7 @@
 
 (defun write-docs (&key
                      (pathname "SIMPLE-IO.md")
-                     (packages '(io/io)))
+                     (packages '(io/simple-io)))
   ;; (ql:quickload "coalton/doc")
   ;; (ql:quickload "io")
 

@@ -1,6 +1,6 @@
 (defpackage coalton-io/tests/io
   (:use #:coalton #:coalton-prelude #:coalton-testing
-        #:io/io
+        #:io/simple-io
         #:io/monad-io)
   (:local-nicknames
    (:l #:coalton-library/list)

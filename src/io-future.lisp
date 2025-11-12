@@ -9,7 +9,7 @@
    #:io/thread
    #:io/mvar)
   (:local-nicknames
-   (:io #:io/io))
+   (:io #:io/simple-io))
   (:export
    #:Future
    #:fork-future_
@@ -45,10 +45,7 @@
   (define (fork-future_ task)
     "Spawn a new future, which will run and eventually return the result
 from TASK. The future is guaranteed to only ever run at most once, when
-the produced :m is run.
-
-Avoids, for example:
-https://www.reddit.com/r/scala/comments/3zofjl/why_is_future_totally_unusable/"
+the produced :m is run."
     (do
      (value-var <- new-empty-mvar)
      (do-fork
@@ -61,10 +58,7 @@ https://www.reddit.com/r/scala/comments/3zofjl/why_is_future_totally_unusable/"
   (define fork-future
     "Spawn a new future, which will run and eventually return the result
 from TASK. The future is guaranteed to only ever run at most once, when
-the produced :m is run.
-
-Avoids, for example:
-https://www.reddit.com/r/scala/comments/3zofjl/why_is_future_totally_unusable/"
+the produced :m is run."
     fork-future_)
 
   (inline)

@@ -10,7 +10,7 @@
    #:LoopT)
   (:local-nicknames
    (:at #:io/atomics_)
-   (:io #:io/io)
+   (:io #:io/simple-io)
    (:st #:coalton-library/monad/statet)
    (:env #:coalton-library/monad/environment))
   (:export

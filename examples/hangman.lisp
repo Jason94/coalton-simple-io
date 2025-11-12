@@ -8,7 +8,7 @@
    #:coalton-library/monad/environment
    #:coalton-library/experimental/do-control-core
    #:coalton-library/experimental/do-control-loops
-   #:io/io
+   #:io/simple-io
    #:io/term)
   (:local-nicknames
    (:lp #:coalton-library/experimental/do-control-loops-adv)

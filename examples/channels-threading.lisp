@@ -3,7 +3,7 @@
   (:use
    #:coalton
    #:coalton-prelude
-   #:io/io
+   #:io/simple-io
    #:io/thread
    #:io/term
    #:io/random

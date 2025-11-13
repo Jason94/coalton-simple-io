@@ -25,8 +25,9 @@
                  (:file "io-all")
                  (:file "stubs/term")
                  )))
-  :description "Simple IO monad for Coalton."
-  :long-description "Implements a *very* basic implementation of an IO monad for coalton and provides a few simple IO operations, such as console I/O."
+  :description "Functional IO interfaces and implementation for Coalton."
+  :long-description "Functional IO interfaces and implementation for Coalton. Includes terminal IO, file system IO, random variables,
+mutable variables, multithreading, and several data structures to safely share state between threads."
   :in-order-to ((test-op (test-op "coalton-io/tests"))))
 
 (defsystem "coalton-io/tests"

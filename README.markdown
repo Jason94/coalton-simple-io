@@ -34,15 +34,17 @@ _coalton-io_ also provides all of this functionality for free if you want to wri
 
 ## Installation
 
-`coalton-simple-io` is not on Quicklisp, but you can easily install it by checing it out to your `local-projects` directory:
+
+`coalton-io` depends on a later version of Coalton than the current Quicklisp release (as of 11/13/2025). You can easily install it by checking it out to your `local-projects` directory:
 
 ```bash
-git clone https://github.com/Jason94/coalton-simple-io.git ~/quicklisp/local-projects/coalton-simple-io
+git clone https://github.com/coalton-lang/coalton.git ~/quicklisp/local-projects/coalton
 ```
 
-and then: (1) in your project's `.asd` file, list `coalton-simple-io` as a requirement, or (2) execute in your REPL:
+Once you have the latest version of Coalton, you can install `coalton-io` from [Ultralisp](https://ultralisp.org/). See the Ultralisp website for setup instructions. Once the "ultralisp" distribution is set up, simply install it with:
+
 ```lisp
-(ql:quickload "coalton-simple-io")
+(ql:quickload "coalton-io")
 ```
 
 ## Feature Breakdown

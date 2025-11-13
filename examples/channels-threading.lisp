@@ -55,7 +55,7 @@
   (define (reader-thread mchan-input)
     (do
      (f:do-with-open-file (f_:Input (into data-filename)) (fs)
-       (do-loop-while-val (line (f:read-line fs))
+       (do-loop-while-valM (line (f:read-line fs))
          (mv:push-chan mchan-input (Some line)))
        (pure (Ok Unit)))
      (do-loop-times (_ n-workers)

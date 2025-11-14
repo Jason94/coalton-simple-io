@@ -18,7 +18,9 @@
    (:tp #:coalton-library/tuple)
    (:s #:coalton-library/string)
    (:f_ #:coalton-library/file)
+   (:r #:coalton-library/result)
    (:f #:io/file)
+   (:m #:io/mut)
    ))
 
 (in-package :io/examples/hangman)
@@ -221,14 +223,25 @@
 
   (declare get-word-from-dictionary (String -> IO String))
   (define (get-word-from-dictionary fname)
+    ;; Loop through the file twice to avoid storing the whole file
+    ;; in memory at once, just to calculate the random word.
     (do
-     ;; NOTE: This loads the whole dictionary into memory,
-     ;; so it isn't the most efficient.
-     (words? <- (f:read-file-lines fname))
-     (do-if-val (words words?)
-           (random-elt#_ words)
+     (n-words-var <- (m:new-var 0))
+     (f:do-with-open-file (f_:Input (into fname)) (fs)
+       (do-loop-while-valM (_ (f:read-line fs))
+         (m:modify n-words-var (+ 1)))
+       (pure (Ok Unit)))
+     (n-words <- (m:read n-words-var))
+     (n-word <- (random_ n-words))
+     (word? <-
+       (f:do-with-open-file (f_:Input (into fname)) (fs)
+         (do-loop-times (_ n-word)
+           (f:read-line fs))
+         (f:read-line fs)))
+     (do-if-val (word word?)
+           (pure word)
        (write-line "Could not find dictionary file.")
-       (write-line "(This often happens from Slime, because it's difficult to control the path.)")
+       (write-line "(This often happens from Slime, try using ',cd')")
        (pure "fence"))))
   )
 

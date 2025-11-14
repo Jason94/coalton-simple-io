@@ -9,13 +9,17 @@
    #:coalton-library/experimental/do-control-core
    #:coalton-library/experimental/do-control-loops
    #:io/simple-io
-   #:io/term)
+   #:io/term
+   #:io/random)
   (:local-nicknames
    (:lp #:coalton-library/experimental/do-control-loops-adv)
    (:itr #:coalton-library/iterator)
    (:l #:coalton-library/list)
    (:tp #:coalton-library/tuple)
-   (:s #:coalton-library/string)))
+   (:s #:coalton-library/string)
+   (:f_ #:coalton-library/file)
+   (:f #:io/file)
+   ))
 
 (in-package :io/examples/hangman)
 
@@ -187,8 +191,6 @@
      (num-guesses <- (asks num-guesses_))
      (pure (>= n-wrong num-guesses))))
 
-  (define failure-msg "You ran out of guesses. Better luck next time!")
-
   (declare hangman (HangmanM Unit))
   (define hangman
     (do
@@ -196,6 +198,7 @@
      (secret-word <- get-random-word)
      (write-line "Please enter a full word to make a guess at the answer.")
      (write-line "Otherwise, enter a single letter to make a letter guess.")
+     (write-status secret-word)
      (lp:do-loop
        (input <- read-line)
        (matchM (parse-guess input)
@@ -210,12 +213,28 @@
             (write-line "You won!")
             lp:break-loop)))
        (do-whenM over-and-failed?
-         (write-line failure-msg)
+         (write-line "You ran out of guesses. Better luck next time!")
+         (write-line (<> "The secret word was: " secret-word))
          lp:break-loop)
        (write-status secret-word))
       ))
+
+  (declare get-word-from-dictionary (String -> IO String))
+  (define (get-word-from-dictionary fname)
+    (do
+     ;; NOTE: This loads the whole dictionary into memory,
+     ;; so it isn't the most efficient.
+     (words? <- (f:read-file-lines fname))
+     (do-if-val (words words?)
+           (random-elt#_ words)
+       (write-line "Could not find dictionary file.")
+       (write-line "(This often happens from Slime, because it's difficult to control the path.)")
+       (pure "fence"))))
   )
 
-
 (cl:defun play ()
-  (coalton (run-hangman (HangmanConf 4 (pure "pizza")) hangman)))
+  (coalton (run-hangman
+            (HangmanConf
+             7
+             (get-word-from-dictionary "hangman_dictionary.txt"))
+            hangman)))

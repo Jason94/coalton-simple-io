@@ -65,12 +65,12 @@
      (define write-line write-line%)
      (define read-line read-line%)))
 
-(cl:defmacro derive-monad-io-term (monadT-form)
+(cl:defmacro derive-monad-io-term (monad-param monadT-form)
   "Automatically derive an instance of MonadIoTerm for a monad transformer.
 
 Example:
-  (derive-monad-io-term (st:StateT :s :m))"
-  `(define-instance (MonadIoTerm :m => MonadIoTerm ,monadT-form)
+  (derive-monad-io-term :m (st:StateT :s :m))"
+  `(define-instance (MonadIoTerm ,monad-param => MonadIoTerm ,monadT-form)
      (define write (compose lift write))
      (define write-line (compose lift write-line))
      (define read-line (lift read-line))))
@@ -80,9 +80,9 @@ Example:
 ;;
 
 (coalton-toplevel
-  (derive-monad-io-term (StateT :s :m))
-  (derive-monad-io-term (EnvT :e :m))
-  (derive-monad-io-term (LoopT :m)))
+  (derive-monad-io-term :m (StateT :s :m))
+  (derive-monad-io-term :m (EnvT :e :m))
+  (derive-monad-io-term :m (LoopT :m)))
 
 ;;
 ;; Simple IO Implementation

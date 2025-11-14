@@ -1,25 +1,48 @@
 (cl:in-package :cl-user)
 (defpackage :io/io-all
   (:use #:coalton #:coalton-prelude)
+  (:import-from #:io/monad-io
+   #:derive-monad-io)
   (:import-from #:io/thread
-   #:implement-monad-io-thread)
+   #:implement-monad-io-thread
+   #:derive-monad-io-thread)
   (:import-from #:io/atomic
-   #:implement-monad-io-atomic)
+   #:implement-monad-io-atomic
+   #:derive-monad-at-var)
   (:import-from #:io/mut
-   #:implement-monad-io-var)
+   #:implement-monad-io-var
+   #:derive-monad-var)
   (:import-from #:io/mvar
-   #:implement-monad-io-mvar)
+   #:implement-monad-io-mvar
+   #:derive-monad-io-mvar)
   (:import-from #:io/file
-   #:implement-monad-io-file)
+   #:implement-monad-io-file
+   #:derive-monad-io-file)
   (:import-from #:io/random
-   #:implement-monad-io-random)
+   #:implement-monad-io-random
+   #:derive-monad-io-random)
   (:import-from #:io/term
-   #:implement-monad-io-term)
+   #:implement-monad-io-term
+   #:derive-monad-io-term)
   (:import-from #:io/unique
-   #:implement-monad-io-unique)
+   #:implement-monad-io-unique
+   #:derive-monad-io-unique)
   (:export
-   #:implement-monad-io-all))
+   #:implement-monad-io-all
+   #:derive-monad-io-all))
 (in-package :io/io-all)
+
+(cl:defmacro derive-monad-io-all (monad-param monadT-form)
+  `(progn
+     (derive-monad-io ,monad-param ,monadT-form)
+     (derive-monad-io-thread ,monad-param ,monadT-form)
+     (derive-monad-at-var ,monad-param ,monadT-form)
+     (derive-monad-var ,monad-param ,monadT-form)
+     (derive-monad-io-mvar ,monad-param ,monadT-form)
+     (derive-monad-io-file ,monad-param ,monadT-form)
+     (derive-monad-io-random ,monad-param ,monadT-form)
+     (derive-monad-io-term ,monad-param ,monadT-form)
+     (derive-monad-io-unique ,monad-param ,monadT-form)))
 
 (cl:defmacro implement-monad-io-all (monad)
   `(progn

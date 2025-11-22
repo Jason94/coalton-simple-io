@@ -42,6 +42,7 @@
     "A number that can be used to bound a random number value.")
 
   (define-instance (RandomLimit UFix))
+  (define-instance (RandomLimit Integer))
   (define-instance (RandomLimit F32))
   (define-instance (RandomLimit F64))
 

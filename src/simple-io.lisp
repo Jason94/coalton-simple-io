@@ -67,7 +67,7 @@
        (fn ()
          (run-io! (fa->io-b (f->a)))))))
 
-  (define-instance (RunIo IO)
+  (define-instance (BaseIo IO)
     (define run! run-io!))
 
   ;;

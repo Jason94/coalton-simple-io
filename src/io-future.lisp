@@ -40,7 +40,7 @@
   (define (value-mvar (Future% mvar))
     mvar)
 
-  (declare fork-future_ ((MonadIoThread :m) (MonadIoMVar :m) (RunIo :r)
+  (declare fork-future_ ((MonadIoThread :m) (MonadIoMVar :m) (BaseIo :r)
                          => :r :a -> :m (Future :a)))
   (define (fork-future_ task)
     "Spawn a new future, which will run and eventually return the result

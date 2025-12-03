@@ -38,15 +38,15 @@
     (fork_
      "Spawn a new thread, which starts running immediately.
 Returns the handle to the thread. This version can accept
-any RunIo, which can be useful, but causes inference issues
+any BaseIo, which can be useful, but causes inference issues
 in some cases."
-     (RunIo :r => :r :a -> :m IoThread))
+     (BaseIo :r => :r :a -> :m IoThread))
     (sleep
      "Sleep the current thread for MSECS milliseconds."
      (UFix -> :m Unit)))
 
   (inline)
-  (declare fork% ((RunIo :r) (MonadIo :m) => :r :a -> :m IoThread))
+  (declare fork% ((BaseIo :r) (MonadIo :m) => :r :a -> :m IoThread))
   (define (fork% op)
     (wrap-io (IoThread%
               (t:spawn (fn ()

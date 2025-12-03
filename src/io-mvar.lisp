@@ -95,7 +95,7 @@ True if the put succeeds."
     (with-mvar
      "Perform an IO action with the value from an MVar, without removing
 the value. Blocks until the MVar is full."
-     (RunIo :r => MVar :a -> (:a -> :r :b) -> :m :b)))
+     (BaseIo :r => MVar :a -> (:a -> :r :b) -> :m :b)))
 
   (inline)
   (declare new-mvar% (MonadIo :m => :a -> :m (MVar :a)))
@@ -235,7 +235,7 @@ the value. Blocks until the MVar is full."
       (lk:release (.lock mvar))
       result))
 
-  (declare with-mvar% ((RunIo :r) (MonadIo :m) => MVar :a -> (:a -> :r :b) -> :m :b))
+  (declare with-mvar% ((BaseIo :r) (MonadIo :m) => MVar :a -> (:a -> :r :b) -> :m :b))
   (define (with-mvar% mvar op)
     (do
       (x <- (read-mvar% mvar))

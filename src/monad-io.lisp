@@ -19,7 +19,7 @@
    #:derive-monad-io
    #:wrap-io_
    #:wrap-io
-   #:RunIo
+   #:BaseIo
    #:run!
    #:map-into-io
    #:foreach-io
@@ -47,8 +47,9 @@ Example:
      "Wrap a (potentially) side-effectful function in the monad."
      ((Unit -> :a) -> :m :a)))
 
-  (define-class (RunIo :m)
-    "A MonadIo operation that can be run to return its output."
+  (define-class (MonadIo :m => BaseIo :m)
+    "A 'base' IO implementation, which can be run to execute some
+(potentially side-effectful) operation."
     (run!
      "Run a (potentially) side-effectful operation."
      (:m :a -> :a))
@@ -96,7 +97,7 @@ putting in the full type of M-OP, not just (IO :a).
 
 (coalton-toplevel
   (inline)
-  (declare map-into-io ((MonadIo :m) (RunIo :m) (it:IntoIterator :i :a)
+  (declare map-into-io ((BaseIo :m) (it:IntoIterator :i :a)
                          => :i -> (:a -> :m :b) -> :m (List :b)))
   (define (map-into-io itr a->mb)
     "Efficiently perform a monadic operation for each element of an iterator
@@ -108,8 +109,7 @@ and return the results."
       (reverse (c:read results))))
 
   (inline)
-  (declare foreach-io ((MonadIo :m) (RunIo :m) (it:IntoIterator :i :a)
-                        => :i -> (:a -> :m :b) -> :m Unit))
+  (declare foreach-io ((BaseIo :m) (it:IntoIterator :i :a) => :i -> (:a -> :m :b) -> :m Unit))
   (define (foreach-io itr a->mb)
     "Efficiently perform a monadic operation for each element of an iterator."
     (wrap-io

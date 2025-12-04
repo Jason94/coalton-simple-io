@@ -90,8 +90,8 @@ Example:
      (define abort (compose lift abort))
 
      (define with-open-file_ with-open-file%)
-     (define with-temp-file_ (compose2 lift with-temp-file_))
-     (define with-temp-directory_ (compose lift with-temp-directory_))
+     (define with-temp-file_ with-temp-file%)
+     (define with-temp-directory_ with-temp-directory%)
 
      (define copy (compose2 lift copy))
      (define create-directory (compose lift create-directory))
@@ -183,18 +183,34 @@ Usage:
                ((Err e) (pure (Err e)))
                ((Ok op) op))))))))
 
-  (declare with-temp-file% ((file:File :a) (MonadIo :m) (BaseIo :r)
+  (declare with-temp-file% ((file:File :a) (UnliftIo :r :i) (LiftTo :r :m)
             => String
             -> ((file:FileStream :a) -> :r (Result file:FileError :b))
             -> :m (Result file:FileError :b)))
   (define (with-temp-file% file-type k)
-    (wrap-io (file:with-temp-file file-type (fn (fs) (run! (k fs))))))
+    (lift-to
+     (with-run-in-io
+         (fn (run)
+           (lift-io
+            (do
+             (result? <- (wrap-io (file:with-temp-file file-type (fn (fs) (Ok (run (k fs)))))))
+             (match result?
+               ((Err e) (pure (Err e)))
+               ((Ok op) op))))))))
 
-  (declare with-temp-directory% ((MonadIo :m) (BaseIo :r)
+  (declare with-temp-directory% ((MonadIo :m) (UnliftIo :r :i) (LiftTo :r :m)
                                  => (file:Pathname -> :r (Result file:FileError :a))
                                  -> :m (Result file:FileError :a)))
   (define (with-temp-directory% k)
-    (wrap-io (file:with-temp-directory (fn (dir) (run! (k dir))))))
+    (lift-to
+     (with-run-in-io
+         (fn (run)
+           (lift-io
+            (do
+             (result? <- (wrap-io (file:with-temp-directory (fn (fs) (Ok (run (k fs)))))))
+             (match result?
+               ((Err e) (pure (Err e)))
+               ((Ok op) op))))))))
 
   (declare copy% ((Into :a file:Pathname) (Into :b file:Pathname) (MonadIo :m) => :a -> :b -> :m (Result file:FileError Unit)))
   (define (copy% a b)
@@ -297,7 +313,7 @@ Usage:
 
     (with-open-file_
      "Opens a file stream, performs `thunk` on it, then closes the stream.
-Can run any BaseIo, which can be useful but can also cause inference issues
+Can run any underlying BaseIo, which can be useful but can also cause inference issues
 in some cases. Try WITH-OPEN-FILE if you have issues."
      ((file:File :a) (UnliftIo :r :i) (LiftTo :r :m)
       => file:StreamOptions
@@ -305,17 +321,19 @@ in some cases. Try WITH-OPEN-FILE if you have issues."
       -> :m (Result file:FileError :b)))
     (with-temp-file_
      "Performs an operation `thunk` on a temporary file. File type extensions need to include `.`
-Can run any BaseIo, which can be useful but can also cause inference issues
+Can run any underlying BaseIo, which can be useful but can also cause inference issues
 in some cases. Try WITH-TEMP-FILE if you have issues."
-     ((file:File :a) (BaseIo :r)
+     ((file:File :a) (UnliftIo :r :i) (LiftTo :r :m)
       => String
       -> ((file:FileStream :a) -> :r (Result file:FileError :b))
       -> :m (Result file:FileError :b)))
     (with-temp-directory_
       "Performs an operation `thunk` inside a temporary directory.
-Can run any BaseIo, which can be useful but can also cause inference issues
+Can run any underlying BaseIo, which can be useful but can also cause inference issues
 in some cases. Try WITH-TEMP-DIRECTORY if you have issues."
-      (BaseIo :r => (file:Pathname -> :r (Result file:FileError :a)) -> :m (Result file:FileError :a)))
+      ((UnliftIo :r :i) (LiftTo :r :m)
+       => (file:Pathname -> :r (Result file:FileError :a))
+       -> :m (Result file:FileError :a)))
     (copy
      "Copies a file to a new location."
      ((Into :a file:Pathname) (Into :b file:Pathname) => :a -> :b -> :m (Result file:FileError Unit)))
@@ -425,19 +443,19 @@ in some cases. Try WITH-TEMP-DIRECTORY if you have issues."
 
   (implement-monad-io-file io:IO)
 
-  (declare with-open-file ((file:File :a) (MonadIoFile :r io:IO) (UnliftIo :r io:IO) (LiftTo io:IO :r)
+  (declare with-open-file ((file:File :a) (MonadIoFile :m io:IO) (UnliftIo :m io:IO) (LiftTo io:IO :m)
                            => file:StreamOptions
                            -> ((file:FileStream :a) -> io:IO (Result file:FileError :b))
-                           -> :r (Result file:FileError :b)))
+                           -> :m (Result file:FileError :b)))
   (define with-open-file with-open-file_)
 
-  (declare with-temp-file ((file:File :a) (MonadIoFile :m io:IO)
+  (declare with-temp-file ((file:File :a) (MonadIoFile :m io:IO) (UnliftIo :m io:IO) (LiftTo io:IO :m)
                            => String
                            -> ((file:FileStream :a) -> io:IO (Result file:FileError :b))
                            -> :m (Result file:FileError :b)))
   (define with-temp-file with-temp-file_)
 
-  (declare with-temp-directory (MonadIoFile :m io:IO
+  (declare with-temp-directory ((MonadIoFile :m io:IO) (UnliftIo :m io:IO) (LiftTo io:IO :m)
                                 => (file:Pathname -> io:IO (Result file:FileError :a))
                                 -> :m (Result file:FileError :a)))
   (define with-temp-directory with-temp-directory_))

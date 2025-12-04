@@ -4,8 +4,10 @@
    #:coalton
    #:coalton-prelude
    #:coalton-library/functions
+   #:coalton-library/monad/classes
    #:io/utils
    #:io/monad-io
+   #:io/unlift
    #:io/thread
    #:io/mvar)
   (:local-nicknames
@@ -40,7 +42,8 @@
   (define (value-mvar (Future% mvar))
     mvar)
 
-  (declare fork-future_ ((MonadIoThread :m) (MonadIoMVar :m) (BaseIo :r)
+  (declare fork-future_ ((MonadIoThread :m) (MonadIoMVar :m) (MonadIoMVar :r)
+                         (UnliftIo :r :i) (LiftTo :r :m)
                          => :r :a -> :m (Future :a)))
   (define (fork-future_ task)
     "Spawn a new future, which will run and eventually return the result
@@ -48,12 +51,12 @@ from TASK. The future is guaranteed to only ever run at most once, when
 the produced :m is run."
     (do
      (value-var <- new-empty-mvar)
-     (do-fork
-       (result <- (wrap-io (run! task)))
+     (do-fork_
+       (result <- task)
        (put-mvar value-var result))
      (pure (Future% value-var))))
 
-  (declare fork-future ((MonadIoThread :m) (MonadIoMVar :m)
+  (declare fork-future ((MonadIoThread :m) (MonadIoMVar :m) (LiftTo io:IO :m)
                         => io:IO :a -> :m (Future :a)))
   (define fork-future
     "Spawn a new future, which will run and eventually return the result

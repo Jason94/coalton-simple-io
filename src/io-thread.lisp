@@ -4,8 +4,10 @@
    #:coalton
    #:coalton-prelude
    #:coalton-library/functions
+   #:coalton-library/monad/classes
    #:io/utils
-   #:io/monad-io)
+   #:io/monad-io
+   #:io/unlift)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
    #:LoopT)
   (:local-nicknames
@@ -19,6 +21,7 @@
    #:derive-monad-io-thread
    #:fork_
    #:fork
+   #:do-fork_
    #:do-fork
    #:sleep
    
@@ -38,20 +41,27 @@
     (fork_
      "Spawn a new thread, which starts running immediately.
 Returns the handle to the thread. This version can accept
-any BaseIo, which can be useful, but causes inference issues
-in some cases."
-     (BaseIo :r => :r :a -> :m IoThread))
+any underlying BaseIo, which can be useful, but causes inference
+issues in some cases."
+     ((UnliftIo :r :i) (LiftTo :r :m) => :r :a -> :m IoThread))
     (sleep
      "Sleep the current thread for MSECS milliseconds."
      (UFix -> :m Unit)))
 
   (inline)
-  (declare fork% ((BaseIo :r) (MonadIo :m) => :r :a -> :m IoThread))
+  (declare fork% ((MonadIo :m) (UnliftIo :r :i) (LiftTo :r :m) => :r :a -> :m IoThread))
   (define (fork% op)
-    (wrap-io (IoThread%
-              (t:spawn (fn ()
-                         (run! op)
-                         Unit)))))
+    (lift-to
+     (with-run-in-io
+         (fn (run)
+            (wrap-io (IoThread%
+                      (t:spawn (fn ()
+                                 (run! (run op))
+                                 Unit))))))))
+    ;; (wrap-io (IoThread%
+    ;;           (t:spawn (fn ()
+    ;;                      (run! op)
+    ;;                      Unit)))))
 
   (inline)
   (declare sleep% (MonadIo :m => UFix -> :m Unit))
@@ -72,7 +82,7 @@ in some cases."
 Example:
   (derive-monad-io-thread :m (st:StateT :s :m))"
   `(define-instance (MonadIoThread ,monad-param => MonadIoThread ,monadT-form)
-     (define fork_ (compose lift fork_))
+     (define fork_ fork%)
      (define sleep (compose lift sleep))))
 
 (coalton-toplevel
@@ -84,6 +94,11 @@ Example:
   (derive-monad-io-thread :m (st:StateT :s :m))
   (derive-monad-io-thread :m (env:EnvT :e :m))
   (derive-monad-io-thread :m (LoopT :m)))
+
+(cl:defmacro do-fork_ (cl:&body body)
+  `(fork_
+    (do
+     ,@body)))
 
 (cl:defmacro do-fork (cl:&body body)
   `(fork
@@ -98,6 +113,6 @@ Example:
 
   (implement-monad-io-thread io:IO)
 
-  (declare fork (MonadIoThread :m => io:IO :a -> :m IoThread))
+  (declare fork ((MonadIoThread :m) (UnliftIo :m io:IO) (LiftTo io:IO :m) => io:IO :a -> :m IoThread))
   (define fork fork_)
   )

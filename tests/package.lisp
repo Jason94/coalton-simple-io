@@ -19,6 +19,7 @@
 (cl:defun run-tests ()
   (fiasco:run-package-tests
    :packages '(#:coalton-io/tests/io-fiasco
+               #:coalton-io/tests/exception-fiasco
                #:coalton-io/tests/mut-fiasco
                #:coalton-io/tests/random-fiasco
                #:coalton-io/tests/thread-fiasco

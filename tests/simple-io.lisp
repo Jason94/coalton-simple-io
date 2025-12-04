@@ -84,17 +84,17 @@
 (define-test test-useless-catch ()
   (let result =
     (run-io!
-     (handle-any-io
+     (handle-all-io
       (wrap-io 10)
-      (wrap-io -10))))
+      (const (wrap-io -10)))))
   (is (== 10 result)))
 
 (define-test test-raise-handle-any ()
   (let result =
     (run-io!
-     (handle-any-io
+     (handle-all-io
       (raise-io (TE "Error"))
-      (pure "Caught an error!"))))
+      (const (pure "Caught an error!")))))
   (is (== "Caught an error!" result)))
 
 (coalton-toplevel
@@ -110,9 +110,9 @@
 (define-test test-raise-in-long-do-handle-any ()
   (let result =
     (run-io!
-     (handle-any-io
+     (handle-all-io
       long-op
-      (pure "Caught an error!"))))
+      (const (pure "Caught an error!")))))
   (is (== "Caught an error!" result)))
 
 (coalton-toplevel
@@ -143,15 +143,3 @@
       handle-te)))
   (is (== "Caught: Error" result)))
 
-(define-test test-try-ok ()
-  (let result =
-    (the (Result String Integer)
-         (run-io!
-          (try-io (wrap-io 10)))))
-  (is (== (Ok 10) result)))
-
-(define-test test-try-fail ()
-  (let result =
-    (run-io!
-     (try-io (raise-io_ (TE "Error!")))))
-  (is (== (Err (TE "Error!")) result)))

@@ -25,9 +25,8 @@
 
    #:raise-io
    #:raise-io_
-   #:try-io
    #:handle-io
-   #:handle-any-io
+   #:handle-all-io
 
    ;; Re-export the basic IO operations for usability, so that users
    ;; who want to use IO don't have to import two files.
@@ -126,26 +125,8 @@
               result))))))))
 
   (inline)
-  (declare try-io (RuntimeRepr :e => IO :a -> IO (Result :e :a)))
-  (define (try-io io-op)
-    "Bring any underlying errors of type :e from the monad into a Result.
-Continues to carry any errors not of type :e unhandled."
-    (IO%
-     (const
-      (let ((result (run-io!% io-op)))
-        (match result
-          ((Ok a)
-           (OK (Ok a)))
-          ((Err e?)
-           (match (cast e?)
-             ((Some e)
-              (Ok (Err e)))
-             ((None)
-              (Err e?)))))))))
-
-  (inline)
-  (declare handle-any-io (IO :a -> IO :a -> IO :a))
-  (define (handle-any-io io-op handle-op)
+  (declare handle-all-io (IO :a -> (Unit -> IO :a) -> IO :a))
+  (define (handle-all-io io-op handle-op)
     "Run IO-OP, and run HANDLE-OP to handle exceptions of any type thrown by IO-OP."
     (IO%
      (const
@@ -154,7 +135,7 @@ Continues to carry any errors not of type :e unhandled."
           ((Ok a)
            (Ok a))
           ((Err _)
-           (run-io!% handle-op)))))))
+           (run-io!% (handle-op))))))))
 
   (define-instance (BaseIo IO)
     (define run! run-io!))

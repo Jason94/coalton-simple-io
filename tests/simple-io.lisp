@@ -1,5 +1,7 @@
 (defpackage coalton-io/tests/io
   (:use #:coalton #:coalton-prelude #:coalton-testing
+        #:coalton-library/types
+        #:io/utils
         #:io/simple-io
         #:io/monad-io)
   (:local-nicknames
@@ -66,30 +68,90 @@
 ;;; Test Exceptions
 ;;;
 
+(coalton-toplevel
+
+  (derive Eq)
+  (repr :lisp)
+  (define-type TestException
+    (TE String))
+
+  (derive Eq)
+  (repr :lisp)
+  (define-type TestExceptionTwo
+    (TE2 String))
+  )
+
 (define-test test-useless-catch ()
   (let result =
     (run-io!
-     (catch-io
+     (handle-any-io
       (wrap-io 10)
-      (const (wrap-io -10)))))
+      (wrap-io -10))))
   (is (== 10 result)))
 
-(define-test test-throw-catch ()
+(define-test test-raise-handle-any ()
   (let result =
     (run-io!
-     (catch-io
-      (throw-io "Error")
-      (fn (e) (pure (<> "Caught: " e))))))
+     (handle-any-io
+      (raise-io (TE "Error"))
+      (pure "Caught an error!"))))
+  (is (== "Caught an error!" result)))
+
+(coalton-toplevel
+  (declare long-op (IO String))
+  (define long-op
+    (do
+     (x <- (wrap-io 10))
+     (y <- (wrap-io 100))
+     (raise-io (TE "Error"))
+     (z <- (pure (+ x y)))
+     (pure (into z)))))
+
+(define-test test-raise-in-long-do-handle-any ()
+  (let result =
+    (run-io!
+     (handle-any-io
+      long-op
+      (pure "Caught an error!"))))
+  (is (== "Caught an error!" result)))
+
+(coalton-toplevel
+  (declare handle-te (TestException -> IO String))
+  (define (handle-te (TE msg))
+    (pure (<> "Caught: " msg)))
+
+  (declare handle-te2 (TestExceptionTwo -> IO String))
+  (define (handle-te2 (TE2 msg))
+    (pure (<> "Caught TE2: " msg)))
+  )
+
+(define-test test-handle-actual-type ()
+  (let result =
+    (run-io!
+     (handle-io
+      (raise-io (TE "Error"))
+      handle-te)))
+  (is (== "Caught: Error" result)))
+
+(define-test test-handle-different-type ()
+  (let result =
+    (run-io!
+     (handle-io
+      (handle-io
+       (raise-io (TE "Error"))
+       handle-te2)
+      handle-te)))
   (is (== "Caught: Error" result)))
 
 (define-test test-try-ok ()
   (let result =
-    (run-io!
-     (try-io (wrap-io 10))))
+    (the (Result String Integer)
+         (run-io!
+          (try-io (wrap-io 10)))))
   (is (== (Ok 10) result)))
 
 (define-test test-try-fail ()
   (let result =
     (run-io!
-     (try-io (throw-io_ "Error!"))))
-  (is (== (Err "Error!") result)))
+     (try-io (raise-io_ (TE "Error!")))))
+  (is (== (Err (TE "Error!")) result)))

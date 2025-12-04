@@ -4,6 +4,7 @@
    #:coalton
    #:coalton-prelude
    #:coalton-library/functions
+   #:coalton-library/types
    #:coalton-library/experimental/do-control-core
    #:io/utils
    #:io/monad-io)
@@ -11,6 +12,8 @@
    #:dolist)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
    #:LoopT)
+  (:import-from #:coalton-library/types
+   #:RuntimeRepr)
   (:local-nicknames
    (:st #:coalton-library/monad/statet)
    (:env #:coalton-library/monad/environment)
@@ -24,6 +27,7 @@
    #:raise-io_
    #:try-io
    #:handle-io
+   #:handle-any-io
 
    ;; Re-export the basic IO operations for usability, so that users
    ;; who want to use IO don't have to import two files.
@@ -42,45 +46,23 @@
   ;;
   ;; IO Monad
   ;;
+  (repr :transparent)
   (define-type (IO :a)
-    (IO% (Unit -> :a))
-    (ErrorIO% String))
+    (IO% (Unit -> Result Dynamic :a)))
 
   (inline)
-  (declare raise-io (String -> IO :a))
-  (define (raise-io err)
-    (ErrorIO% err))
-
-  (inline)
-  (declare raise-io_ (String -> IO Unit))
-  (define raise-io_ raise-io)
-
-  (inline)
-  (declare try-io (IO :a -> IO (Result String :a)))
-  (define (try-io io-op)
-    (match io-op
-      ((IO% f)
-       (IO% (map Ok f)))
-      ((ErrorIo% e)
-       (IO% (const (Err e))))))
-
-  (inline)
-  (declare handle-io (IO :a -> (String -> IO :a) -> IO :a))
-  (define (handle-io io-op handle-op)
-    (match io-op
-      ((IO% _)
-       io-op)
-      ((ErrorIo% e)
-       (handle-op e))))
+  (declare run-io!% (IO :a -> Result Dynamic :a))
+  (define (run-io!% (IO% f->a?))
+    (f->a?))
 
   (inline)
   (declare run-io! (IO :a -> :a))
-  (define (run-io! io-op)
-    (match io-op
-      ((IO% funit->a)
-       (funit->a))
-      ((ErrorIO% e)
-       (error e))))
+  (define (run-io! (IO% fa?))
+    (match (fa?)
+      ((Ok a)
+       a)
+      ((Err e)
+       (error (force-string e)))))
 
   (define-instance (Functor IO)
     (define (map fb->c io-op)
@@ -88,35 +70,91 @@
         ((IO% funit->b)
          (IO%
           (fn ()
-            (fb->c (funit->b)))))
-        ((ErrorIO% e)
-         (ErrorIO% e)))))
+            (map fb->c (funit->b))))))))
 
   (define-instance (Applicative IO)
     (inline)
-    (define pure (compose IO% const))
+    (define (pure x) (IO% (const (Ok x))))
     (inline)
-    (define (liftA2 fa->b->c io-a io-b)
-      (match (Tuple io-a io-b)
-        ((Tuple (IO% f->a) (IO% f->b))
-         (IO%
-          (fn ()
-            (fa->b->c (f->a) (f->b)))))
-        ((Tuple (ErrorIO% e) _)
-         (ErrorIO% e))
-        ((Tuple _ (ErrorIO% e))
-         (ErrorIO% e)))))
+    (define (liftA2 fa->b->c (IO% f->a?) (IO% f->b?))
+      (IO%
+       (const
+        (match (f->a?)
+          ((Err e1)
+           (Err e1))
+          ((Ok a)
+           (match (f->b?)
+             ((Err e2)
+              (Err e2))
+             ((Ok b)
+              (Ok (fa->b->c a b))))))))))
 
   (define-instance (Monad IO)
     (inline)
-    (define (>>= io-op fa->io-b)
-      (match io-op
-        ((IO% f->a)
-         (IO%
-          (fn ()
-            (run-io! (fa->io-b (f->a))))))
-        ((ErrorIO% e)
-         (ErrorIO% e)))))
+    (define (>>= (IO% f->a?) fa->io-b)
+      (IO%
+       (const
+        (match (f->a?)
+          ((Err e)
+           (Err e))
+          ((Ok a)
+           (run-io!% (fa->io-b a))))))))
+
+  (inline)
+  (declare raise-io (RuntimeRepr :e => :e -> IO :a))
+  (define (raise-io e)
+    (IO% (const (Err (to-dynamic e)))))
+
+  (inline)
+  (declare raise-io_ (RuntimeRepr :e => :e -> IO Unit))
+  (define raise-io_ raise-io)
+
+  (inline)
+  (declare handle-io (RuntimeRepr :e => IO :a -> (:e -> IO :a) -> IO :a))
+  (define (handle-io io-op handle-op)
+    (IO%
+     (const
+      (let ((result (run-io!% io-op)))
+        (match result
+          ((Ok a)
+           (Ok a))
+          ((Err e?)
+           (match (cast e?)
+             ((Some e)
+              (run-io!% (handle-op e)))
+             ((None)
+              result))))))))
+
+  (inline)
+  (declare try-io (RuntimeRepr :e => IO :a -> IO (Result :e :a)))
+  (define (try-io io-op)
+    "Bring any underlying errors of type :e from the monad into a Result.
+Continues to carry any errors not of type :e unhandled."
+    (IO%
+     (const
+      (let ((result (run-io!% io-op)))
+        (match result
+          ((Ok a)
+           (OK (Ok a)))
+          ((Err e?)
+           (match (cast e?)
+             ((Some e)
+              (Ok (Err e)))
+             ((None)
+              (Err e?)))))))))
+
+  (inline)
+  (declare handle-any-io (IO :a -> IO :a -> IO :a))
+  (define (handle-any-io io-op handle-op)
+    "Run IO-OP, and run HANDLE-OP to handle exceptions of any type thrown by IO-OP."
+    (IO%
+     (const
+      (let ((result (run-io!% io-op)))
+        (match result
+          ((Ok a)
+           (Ok a))
+          ((Err _)
+           (run-io!% handle-op)))))))
 
   (define-instance (BaseIo IO)
     (define run! run-io!))
@@ -126,4 +164,5 @@
   ;;
 
   (define-instance (MonadIo IO)
-    (define wrap-io_ IO%)))
+    (inline)
+    (define (wrap-io_ f) (IO% (map Ok f)))))

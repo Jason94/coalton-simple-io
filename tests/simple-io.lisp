@@ -61,3 +61,35 @@
        (c:push! run-ints x))))
   (is (== (make-list 0 10 20 30)
           (l:reverse (c:read run-ints)))))
+
+;;;
+;;; Test Exceptions
+;;;
+
+(define-test test-useless-catch ()
+  (let result =
+    (run-io!
+     (catch-io
+      (wrap-io 10)
+      (const (wrap-io -10)))))
+  (is (== 10 result)))
+
+(define-test test-throw-catch ()
+  (let result =
+    (run-io!
+     (catch-io
+      (throw-io "Error")
+      (fn (e) (pure (<> "Caught: " e))))))
+  (is (== "Caught: Error" result)))
+
+(define-test test-try-ok ()
+  (let result =
+    (run-io!
+     (try-io (wrap-io 10))))
+  (is (== (Ok 10) result)))
+
+(define-test test-try-fail ()
+  (let result =
+    (run-io!
+     (try-io (throw-io_ "Error!"))))
+  (is (== (Err "Error!") result)))

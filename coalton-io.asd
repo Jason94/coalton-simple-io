@@ -12,6 +12,7 @@
                 ((:file "utils")
                  (:file "monad-io")
                  (:file "simple-io")
+                 (:file "io-exception")
                  (:file "unlift")
                  (:file "atomics")
                  (:file "io-mut")

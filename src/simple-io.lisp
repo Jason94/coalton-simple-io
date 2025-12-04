@@ -4,6 +4,7 @@
    #:coalton
    #:coalton-prelude
    #:coalton-library/functions
+   #:coalton-library/experimental/do-control-core
    #:io/utils
    #:io/monad-io)
   (:import-from #:coalton-library/experimental/loops
@@ -18,6 +19,11 @@
   (:export
    #:IO
    #:run-io!
+
+   #:raise-io
+   #:raise-io_
+   #:try-io
+   #:handle-io
 
    ;; Re-export the basic IO operations for usability, so that users
    ;; who want to use IO don't have to import two files.
@@ -36,36 +42,81 @@
   ;;
   ;; IO Monad
   ;;
-  (repr :transparent)
   (define-type (IO :a)
-    (IO% (Unit -> :a)))
+    (IO% (Unit -> :a))
+    (ErrorIO% String))
+
+  (inline)
+  (declare raise-io (String -> IO :a))
+  (define (raise-io err)
+    (ErrorIO% err))
+
+  (inline)
+  (declare raise-io_ (String -> IO Unit))
+  (define raise-io_ raise-io)
+
+  (inline)
+  (declare try-io (IO :a -> IO (Result String :a)))
+  (define (try-io io-op)
+    (match io-op
+      ((IO% f)
+       (IO% (map Ok f)))
+      ((ErrorIo% e)
+       (IO% (const (Err e))))))
+
+  (inline)
+  (declare handle-io (IO :a -> (String -> IO :a) -> IO :a))
+  (define (handle-io io-op handle-op)
+    (match io-op
+      ((IO% _)
+       io-op)
+      ((ErrorIo% e)
+       (handle-op e))))
 
   (inline)
   (declare run-io! (IO :a -> :a))
-  (define (run-io! (IO% funit->a))
-    (funit->a))
+  (define (run-io! io-op)
+    (match io-op
+      ((IO% funit->a)
+       (funit->a))
+      ((ErrorIO% e)
+       (error e))))
+
   (define-instance (Functor IO)
-    (inline)
-    (define (map fb->c (IO% funit->b))
-      (IO%
-       (fn ()
-         (fb->c (funit->b))))))
+    (define (map fb->c io-op)
+      (match io-op
+        ((IO% funit->b)
+         (IO%
+          (fn ()
+            (fb->c (funit->b)))))
+        ((ErrorIO% e)
+         (ErrorIO% e)))))
 
   (define-instance (Applicative IO)
     (inline)
     (define pure (compose IO% const))
     (inline)
-    (define (liftA2 fa->b->c (IO% f->a) (IO% f->b))
-      (IO%
-       (fn ()
-         (fa->b->c (f->a) (f->b))))))
+    (define (liftA2 fa->b->c io-a io-b)
+      (match (Tuple io-a io-b)
+        ((Tuple (IO% f->a) (IO% f->b))
+         (IO%
+          (fn ()
+            (fa->b->c (f->a) (f->b)))))
+        ((Tuple (ErrorIO% e) _)
+         (ErrorIO% e))
+        ((Tuple _ (ErrorIO% e))
+         (ErrorIO% e)))))
 
   (define-instance (Monad IO)
     (inline)
-    (define (>>= (IO% f->a) fa->io-b)
-      (IO%
-       (fn ()
-         (run-io! (fa->io-b (f->a)))))))
+    (define (>>= io-op fa->io-b)
+      (match io-op
+        ((IO% f->a)
+         (IO%
+          (fn ()
+            (run-io! (fa->io-b (f->a))))))
+        ((ErrorIO% e)
+         (ErrorIO% e)))))
 
   (define-instance (BaseIo IO)
     (define run! run-io!))

@@ -11,9 +11,10 @@
                 :components
                 ((:file "utils")
                  (:file "monad-io")
+                 (:file "unlift")
                  (:file "simple-io")
                  (:file "io-exception")
-                 (:file "unlift")
+                 (:file "io-resource")
                  (:file "atomics")
                  (:file "io-mut")
                  (:file "io-term")

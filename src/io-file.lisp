@@ -6,7 +6,9 @@
    #:coalton-library/functions
    #:io/utils
    #:io/unlift
-   #:io/monad-io)
+   #:io/exception
+   #:io/monad-io
+   #:io/resource)
   (:import-from #:coalton-library/types
    #:RuntimeRepr)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
@@ -168,20 +170,21 @@ Usage:
     (wrap-io (file:abort fs)))
 
   (declare with-open-file% ((MonadIo :m) (file:File :a) (UnliftIo :r :i) (LiftTo :r :m)
-            => file:StreamOptions
-            -> ((file:FileStream :a) -> :r (Result file:FileError :b))
-            -> :m (Result file:FileError :b)))
+                            (MonadIoException :i)
+                            => file:StreamOptions
+                            -> ((file:FileStream :a) -> :r :b)
+                            -> :m :b))
   (define (with-open-file% opts k)
     "IO version of FILE:WITH-OPEN-FILE where the continuation returns IO."
     (lift-to
      (with-run-in-io
          (fn (run)
            (lift-io
-            (do
-             (result? <- (wrap-io (file:with-open-file opts (fn (fs) (Ok (run (k fs)))))))
-             (match result?
-               ((Err e) (pure (Err e)))
-               ((Ok op) op))))))))
+            (with-resource_ (raise-result (open% opts))
+              (fn (file)
+                (raise-result (close% file)))
+              (fn (file)
+                (run (k file)))))))))
 
   (declare with-temp-file% ((file:File :a) (UnliftIo :r :i) (LiftTo :r :m)
             => String
@@ -315,10 +318,10 @@ Usage:
      "Opens a file stream, performs `thunk` on it, then closes the stream.
 Can run any underlying BaseIo, which can be useful but can also cause inference issues
 in some cases. Try WITH-OPEN-FILE if you have issues."
-     ((file:File :a) (UnliftIo :r :i) (LiftTo :r :m)
+     ((file:File :a) (UnliftIo :r :i) (LiftTo :r :m) (MonadIoException :i)
       => file:StreamOptions
-      -> ((file:FileStream :a) -> :r (Result file:FileError :b))
-      -> :m (Result file:FileError :b)))
+      -> ((file:FileStream :a) -> :r :b)
+      -> :m :b))
     (with-temp-file_
      "Performs an operation `thunk` on a temporary file. File type extensions need to include `.`
 Can run any underlying BaseIo, which can be useful but can also cause inference issues

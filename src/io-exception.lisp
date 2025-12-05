@@ -3,8 +3,10 @@
   (:use
    #:coalton
    #:coalton-prelude
+   #:coalton-library/monad/classes
    #:coalton-library/experimental/do-control-core
    #:io/utils
+   #:io/unlift
    #:io/monad-io)
   (:import-from #:coalton-library/types
    #:RuntimeRepr)
@@ -17,6 +19,7 @@
   (:export
    #:MonadIoException
    #:raise
+   #:reraise
    #:try
    #:handle
    #:handle-all
@@ -38,18 +41,24 @@
 
 (coalton-toplevel
 
+  ;; NOTE: The second argument for several of these could be :m :a. Wrapping
+  ;; in a function call allows transformer instances to avoid running-down
+  ;; to the base MonadIoException layer in the stack, even if no
+  ;; exceptions are raised. The alternative is to limit those functions to
+  ;; just instances of UnliftIo.
   (define-class (MonadIo :m => MonadIoException :m)
     (raise
      "Raise an exception."
      (RuntimeRepr :e => :e -> :m :a))
+    (reraise
+     "Run an operation, run a catch operation if the first operation raised,
+then re-raise the exception. If the catch operation raises, that exception will
+be emitted instead of the original exception."
+     (:m :a -> (Unit -> :m :b) -> :m :a))
     (handle
      "Run an operation, immediately handling if it raised an exception
 that matches :e."
      (RuntimeRepr :e => :m :a -> (:e -> :m :a) -> :m :a))
-    ;; NOTE: The second argument could just be :m :a, but wrapping it
-    ;; in a function call allows transformer instances to avoid running-down
-    ;; to the base MonadIoException layer in the stack, even if no
-    ;; exceptions are raised.
     (handle-all
      "Run an operation, immediately handling any exceptions raised."
      (:m :a -> (Unit -> :m :a) -> :m :a)))
@@ -134,9 +143,22 @@ Example:
         (fn ()
          (st:run-stateT (st-handle-op) s))))))
 
+  (inline)
+  (declare reraise-stateT (MonadIoException :m
+                           => st:StateT :s :m :a
+                           -> (Unit -> st:StateT :s :m :b)
+                           -> st:StateT :s :m :a))
+  (define (reraise-stateT st-op st-catch-op)
+    (st:StateT
+     (fn (s)
+       (reraise
+        (st:run-stateT st-op s)
+        (fn ()
+          (st:run-stateT (st-catch-op) s))))))
+
   (define-instance (MonadIoException :m => MonadIoException (st:StateT :s :m))
     (define raise (compose lift raise))
-    (inline)
+    (define reraise reraise-stateT)
     (define handle handle-stateT)
     (define handle-all handle-all-statet))
 
@@ -168,8 +190,23 @@ Example:
            (env-handle-op)
            env))))))
 
+  (inline)
+  (declare reraise-envT (MonadIoException :m
+                            => e:EnvT :e :m :a -> (Unit -> e:EnvT :e :m :b)
+                            -> e:EnvT :e :m :a))
+  (define (reraise-envT env-op env-handle-op)
+    (e:EnvT
+     (fn (env)
+       (reraise
+        (e:run-envT env-op env)
+        (fn ()
+          (e:run-envT
+           (env-handle-op)
+           env))))))
+
   (define-instance (MonadIoException :m => MonadIoException (e:EnvT :e :m))
     (define raise (compose lift raise))
+    (define reraise reraise-envT)
     (define handle handle-envT)
     (define handle-all handle-all-envT))
 
@@ -183,6 +220,7 @@ Example:
 (coalton-toplevel
   (define-instance (MonadIoException io:IO)
     (define raise io:raise-io)
+    (define reraise io:reraise-io)
     (define handle io:handle-io)
     (define handle-all io:handle-all-io))
   )

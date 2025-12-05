@@ -5,8 +5,7 @@
    #:coalton-prelude
    #:coalton-library/functions
    #:io/utils
-   #:io/monad-io
-   #:io/simple-io)
+   #:io/monad-io)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
    #:LoopT)
   (:local-nicknames
@@ -21,7 +20,6 @@
 
    #:UnliftIo
    #:with-run-in-io
-   #:with-run-in-simple-io
    ))
 
 (in-package :io/unlift)
@@ -69,11 +67,6 @@ Example:
   (define-class ((MonadIo :m) (LiftIo :i :m) => UnliftIo :m :i (:m -> :i))
     (with-run-in-io (((:m :a -> :i :a) -> :i :b) -> :m :b)))
 
-  (define-instance (UnliftIo IO IO)
-    (inline)
-    (define (with-run-in-io inner)
-      (inner id)))
-
   (define-instance ((BaseIo :r) (UnliftIo :m :r) => UnliftIo (e:EnvT :env :m) :r)
     (inline)
     (define (with-run-in-io enva->ioa-->iob)
@@ -85,10 +78,4 @@ Example:
               (fn (m-env)
                (ma->ioa-->iob
                 (e:run-envT m-env env))))))))))
-
-  (declare with-run-in-simple-io (UnliftIo :m IO => (((:m :a -> IO :a) -> IO :b) -> :m :b)))
-  (define with-run-in-simple-io
-    "`with-run-in-io`, but pegged to the simple-io implementation. Useful when you
-need to unlift, run, then immediately re-run a function. See, e.g., io-file:with-open-file%."
-    with-run-in-io)
   )

@@ -7,6 +7,7 @@
    #:coalton-library/types
    #:coalton-library/experimental/do-control-core
    #:io/utils
+   #:io/unlift
    #:io/monad-io)
   (:import-from #:coalton-library/experimental/loops
    #:dolist)
@@ -25,8 +26,11 @@
 
    #:raise-io
    #:raise-io_
+   #:reraise-io
    #:handle-io
    #:handle-all-io
+
+   #:uith-run-in-simple-io
 
    ;; Re-export the basic IO operations for usability, so that users
    ;; who want to use IO don't have to import two files.
@@ -109,6 +113,23 @@
   (define raise-io_ raise-io)
 
   (inline)
+  (declare reraise-io (IO :a -> (Unit -> IO :b) -> IO :a))
+  (define (reraise-io op catch-op)
+    (IO%
+     (fn ()
+       (let result = (run-io!% op))
+       (do-match result
+         ((Ok _)
+          result)
+         ((Err _)
+          (let result2 = (run-io!% (catch-op)))
+          (match result2
+            ((Ok _)
+             result)
+            ((Err e)
+             (Err e))))))))
+
+  (inline)
   (declare handle-io (RuntimeRepr :e => IO :a -> (:e -> IO :a) -> IO :a))
   (define (handle-io io-op handle-op)
     (IO%
@@ -139,6 +160,17 @@
 
   (define-instance (BaseIo IO)
     (define run! run-io!))
+
+  (define-instance (UnliftIo IO IO)
+    (inline)
+    (define (with-run-in-io inner)
+      (inner id)))
+
+  (declare with-run-in-simple-io (UnliftIo :m IO => (((:m :a -> IO :a) -> IO :b) -> :m :b)))
+  (define with-run-in-simple-io
+    "`with-run-in-io`, but pegged to the simple-io implementation. Useful when you
+need to unlift, run, then immediately re-run a function. See, e.g., io-file:with-open-file%."
+    with-run-in-io)
 
   ;;
   ;; MonadIo Instances

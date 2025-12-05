@@ -4,28 +4,41 @@
    #:coalton
    #:coalton-prelude
    #:coalton-library/functions
+   #:coalton-library/monad/classes
    #:io/utils)
   (:import-from #:coalton-library/experimental/loops
    #:dolist)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
    #:LoopT)
   (:local-nicknames
+   (:t #:coalton-library/types)
    (:st #:coalton-library/monad/statet)
-   (:env #:coalton-library/monad/environment)
+   (:e #:coalton-library/monad/environment)
    (:it #:coalton-library/iterator)
    (:c #:coalton-library/cell))
   (:export
+   ;;; Core MonadIo & BaseIo classes
    #:MonadIo
    #:derive-monad-io
    #:wrap-io_
    #:wrap-io
    #:BaseIo
    #:run!
+   #:run-as!
+   ;;; UnliftIo & LiftIo
+   #:LiftIo
+   #:lift-io_
+   #:lift-io
+   #:derive-lift-io
+
+   #:UnliftIo
+   #:with-run-in-io
+
+   ;;; Fused Helpers
    #:map-into-io
    #:foreach-io
    #:do-map-into-io
    #:do-foreach-io
-   #:run-as!
    ))
 (in-package :io/monad-io)
 
@@ -87,8 +100,62 @@ putting in the full type of M-OP, not just (IO :a).
   ;;
 
   (derive-monad-io :m (st:StateT :s :m))
-  (derive-monad-io :m (env:EnvT :env :m))
+  (derive-monad-io :m (e:EnvT :env :m))
   (derive-monad-io :m (LoopT :m))
+  )
+
+;;;
+;;; Lift IO
+;;;
+
+(coalton-toplevel
+
+  (define-class ((Monad :m) (BaseIo :i) => LiftIo :i :m)
+    (lift-io (BaseIo :i => :i :a -> :m :a)))
+
+  (define-instance (BaseIo :i => LiftIo :i :i)
+    (inline)
+    (define lift-io id)))
+
+(cl:defmacro derive-lift-io (monad-param monadT-form)
+  "Automatically derive an instance of LiftIo for a monad transformer.
+
+Example:
+  (derive-lift-io :m (e:EnvT :e :m))"
+  `(define-instance ((LiftIo :i ,monad-param) => LiftIo :i ,monadT-form)
+     (define lift-io (compose lift lift-io))))
+
+(coalton-toplevel
+
+  ;;
+  ;; Std. Library Transformer Instances
+  ;;
+
+  (derive-lift-io :m (st:StateT :s :m))
+  (derive-lift-io :m (e:EnvT :env :m))
+  (derive-lift-io :m (LoopT :m))
+  )
+
+;;;
+;;; Unlift IO
+;;;
+
+(coalton-toplevel
+  ;; NOTE: Defining a "wrapper" around with-run-in-io so that we can specialize on it.
+  (define-class ((MonadIo :m) (LiftIo :i :m) => UnliftIo :m :i (:m -> :i))
+    (with-run-in-io (((:m :a -> :i :a) -> :i :b) -> :m :b)))
+
+  (define-instance ((BaseIo :r) (UnliftIo :m :r) => UnliftIo (e:EnvT :env :m) :r)
+    (inline)
+    (define (with-run-in-io enva->ioa-->iob)
+      (e:EnvT
+       (fn (env)
+         (with-run-in-io
+           (fn (ma->ioa-->iob)
+             (enva->ioa-->iob
+              (fn (m-env)
+               (ma->ioa-->iob
+                (e:run-envT m-env env))))))))))
   )
 
 ;;
@@ -96,26 +163,33 @@ putting in the full type of M-OP, not just (IO :a).
 ;;
 
 (coalton-toplevel
-  (inline)
-  (declare map-into-io ((BaseIo :m) (it:IntoIterator :i :a)
-                         => :i -> (:a -> :m :b) -> :m (List :b)))
-  (define (map-into-io itr a->mb)
+  (declare map-into-io ((UnliftIo :r :io) (LiftTo :r :m) (it:IntoIterator :i :a)
+                         => :i -> (:a -> :r :b) -> :m (List :b)))
+  (define (map-into-io itr a->rb)
     "Efficiently perform a monadic operation for each element of an iterator
-and return the results."
-    (wrap-io
-      (let results = (c:new (make-list)))
-      (for a in (it:into-iter itr)
-        (c:push! results (run! (a->mb a))))
-      (reverse (c:read results))))
+and return the results. If you're having inference issues, try map-into-io_"
+    (lift-to
+     (with-run-in-io
+         (fn (run)
+           (wrap-io
+             (let results = (c:new (make-list)))
+             (for a in (it:into-iter itr)
+               (c:push! results (run! (run (a->rb a)))))
+             (reverse (c:read results)))))))
 
-  (inline)
-  (declare foreach-io ((BaseIo :m) (it:IntoIterator :i :a) => :i -> (:a -> :m :b) -> :m Unit))
+  (declare foreach-io ((UnliftIo :r :io) (LiftTo :r :m) (it:IntoIterator :i :a)
+                       => :i -> (:a -> :r :b) -> :m Unit))
   (define (foreach-io itr a->mb)
-    "Efficiently perform a monadic operation for each element of an iterator."
-    (wrap-io
-      (for a in (it:into-iter itr)
-        (run! (a->mb a)))
-      Unit)))
+    "Efficiently perform a monadic operation for each element of an iterator.
+If you're having inference issues, try foreach-io_."
+    (lift-to
+     (with-run-in-io
+       (fn (run)
+         (wrap-io
+           (for a in (it:into-iter itr)
+             (run! (run (a->mb a))))
+           Unit)))))
+  )
 
 ;;
 ;; Syntactic Sugar Macros

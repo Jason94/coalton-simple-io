@@ -6,8 +6,7 @@
    #:coalton-library/functions
    #:coalton-library/monad/classes
    #:io/utils
-   #:io/monad-io
-   #:io/unlift)
+   #:io/monad-io)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
    #:LoopT)
   (:local-nicknames
@@ -38,6 +37,9 @@
     (IoThread% (t:Thread Unit)))
 
   (define-class (MonadIo :m => MonadIoThread :m)
+    "A MonadIo which can spawn other threads. Other threads error
+separately. A spawned thread erroring will not cause the parent
+thread to fail."
     (fork_
      "Spawn a new thread, which starts running immediately.
 Returns the handle to the thread. This version can accept
@@ -58,10 +60,6 @@ issues in some cases."
                       (t:spawn (fn ()
                                  (run! (run op))
                                  Unit))))))))
-    ;; (wrap-io (IoThread%
-    ;;           (t:spawn (fn ()
-    ;;                      (run! op)
-    ;;                      Unit)))))
 
   (inline)
   (declare sleep% (MonadIo :m => UFix -> :m Unit))

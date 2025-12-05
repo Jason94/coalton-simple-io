@@ -51,14 +51,18 @@
      "Write a new value to an atomic variable."
      (AtVar :a -> :a -> :m Unit))
     (modify
-     "Atomically modify the value of an atomic variable
-by applying F, then return the *new* value of the variable.
-F may be called multiple times, and must be a pure function."
+     "Atomically modify by applying F, then return the new
+value of the atomic variable. F may be called multiple times,
+and must be a pure function. If F errors, it will be raised
+in (:m :a) as an UnhandledError exception, and the atomic
+variable will not be modified."
      (AtVar :a -> (:a -> :a) -> :m :a))
     (modify-swap
-     "Atomically modify the value of an atomic variable
-by applying F, then return the *old* value of the variable.
-F may be called multiple times, and must be a pure function."
+     "Atomically modify by applying F, then return the old
+value of the variable. F may be called multiple times, and
+must be a pure function. If F errors, it will be raised
+in (:m :a) as an UnhandledError exception, and the atomic
+variable will not be modified."
      (AtVar :a -> (:a -> :a) -> :m :a))
     (push
      "Atomically push a value onto an atomic list."

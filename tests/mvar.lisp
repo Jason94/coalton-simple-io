@@ -1,6 +1,7 @@
 (defpackage :coalton-io/tests/mvar
   (:use #:coalton #:coalton-prelude #:coalton-testing
         #:io/simple-io
+        #:io/exception
         #:io/mvar
         #:io/thread)
   (:local-nicknames
@@ -117,3 +118,31 @@
       (new <- (read-mvar mv))
       (pure (Tuple old new)))))
   (is (== (Tuple 10 -10) result)))
+
+(define-test test-with-mvar ()
+  (let result =
+    (run-io!
+     (do
+      (mv <- (new-mvar 10))
+      (result1 <-
+       (do-with-mvar_ (x mv)
+         (pure (<> "Got mvar value " (into x)))))
+      (result-val <- (read-mvar mv))
+      (pure (Tuple result1 result-val)))))
+  (is (== (Tuple "Got mvar value 10" 10)
+          result)))
+
+(define-test test-with-mvar-exception ()
+  (let result =
+    (run-io!
+     (do
+      (mv <- (new-mvar 10))
+      (result1 <-
+       (try
+        (do-with-mvar_ (x mv)
+          (raise "Error inside do-with-mvar")
+          (pure (+ x 100)))))
+      (result-val <- (read-mvar mv))
+      (pure (Tuple result1 result-val)))))
+  (is (== (Tuple (Err "Error inside do-with-mvar") 10)
+          result)))

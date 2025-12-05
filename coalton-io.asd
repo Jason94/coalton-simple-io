@@ -12,7 +12,8 @@
                 ((:file "utils")
                  (:file "monad-io")
                  (:file "simple-io")
-                 (:file "unlift")
+                 (:file "io-exception")
+                 (:file "io-resource")
                  (:file "atomics")
                  (:file "io-mut")
                  (:file "io-term")
@@ -41,10 +42,13 @@ mutable variables, multithreading, and several data structures to safely share s
                 :serial t
                 :components
                 ((:file "simple-io")
+                 (:file "exception")
                  (:file "mut")
                  (:file "random")
                  (:file "thread")
+                 (:file "io-atomic")
                  (:file "mvar")
+                 (:file "future")
                  (:file "package"))))
   :description "Test system for coalton-io"
   :perform (test-op (op c) (symbol-call '#:coalton-io/tests '#:run-tests)))

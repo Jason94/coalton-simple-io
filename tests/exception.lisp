@@ -1,0 +1,123 @@
+(defpackage coalton-io/tests/exception
+  (:use #:coalton #:coalton-prelude #:coalton-testing
+        #:coalton-library/types
+        #:coalton-library/monad/statet
+        #:coalton-library/experimental/do-control-core
+        #:io/utils
+        #:io/simple-io
+        #:io/exception
+        #:io/monad-io)
+  )
+(in-package :coalton-io/tests/exception)
+
+(named-readtables:in-readtable coalton:coalton)
+
+(fiasco:define-test-package #:coalton-io/tests/exception-fiasco)
+
+(coalton-fiasco-init #:coalton-io/tests/exception-fiasco)
+
+;;;
+;;; MonadIoException Utility Tests
+;;;
+
+(coalton-toplevel
+  (derive Eq)
+  (repr :lisp)
+  (define-type TestException
+    (TE String))
+
+  (define-instance (Signalable TestException)
+    (define (error (TE s))
+      (error s)))
+
+  (derive Eq)
+  (repr :lisp)
+  (define-type TestException2
+    (TE2 String))
+
+  (define-instance (Signalable TestException2)
+    (define (error (TE2 s))
+      (error s))))
+
+(define-test test-try-ok ()
+  (let result =
+    (the (Result String Integer)
+         (run-io!
+          (try (wrap-io 10)))))
+  (is (== (Ok 10) result)))
+
+(define-test test-try-fail ()
+  (let result =
+    (run-io!
+     (try (raise-io_ (TE "Error!")))))
+  (is (== (Err (TE "Error!")) result)))
+
+;;;
+;;; StateT instance tests
+;;;
+
+(coalton-toplevel
+
+  (declare pop-return (StateT (List Integer) IO Integer))
+  (define pop-return
+     (do-matchM get
+       ((Nil)
+        (raise (TE "No ints left")))
+       ((Cons x rem)
+        (put rem)
+        (pure x))))
+
+  (declare add-three-ints (StateT (List Integer) IO Integer))
+  (define add-three-ints
+    (do
+     (a <- pop-return)
+     (b <- pop-return)
+     (c <- pop-return)
+     (pure (+ a (+ b c)))))
+
+  (declare run-test (List Integer -> StateT (List Integer) IO :a -> (Tuple (List Integer) :a)))
+  (define (run-test ints op)
+    (run-io! (run-stateT op ints))))
+
+(define-test test-statet-no-exceptions ()
+  (let result = (run-test (make-list 1 2 3 4) add-three-ints))
+  (is (== (Tuple (make-list 4) 6) result)))
+
+(define-test test-statet-try ()
+  (let result =
+    (run-test (make-list 1) (try add-three-ints)))
+  (is (== (Tuple (make-list 1) (Err (TE "No ints left")))
+          result)))
+
+(define-test test-statet-handle-all ()
+  (let result =
+    (run-test (make-list 1)
+              (do-handle-all add-three-ints
+                (modify (Cons 2))
+                (pure 10))
+              ))
+  (is (== (Tuple (make-list 2 1) 10)
+          result)))
+
+(define-test test-statet-handle-type ()
+  (let result =
+    (run-test (make-list 1)
+              (do-handle add-three-ints (e)
+                (let _ = (the TestException e))
+                (modify (Cons 2))
+                (pure 10))
+              ))
+  (is (== (Tuple (make-list 2 1) 10)
+          result)))
+
+(define-test test-statet-handle-wrong-type ()
+  (let result =
+    (run-test (make-list 1)
+              (try
+               (do-handle add-three-ints (e)
+                 (let _ = (the TestException2 e))
+                 (modify (Cons 2))
+                 (pure 10))
+               )))
+  (is (== (Tuple (make-list 1) (Err (TE "No ints left")))
+          result)))

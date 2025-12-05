@@ -16,6 +16,7 @@
   (:import-from #:coalton-library/types
    #:RuntimeRepr)
   (:local-nicknames
+   (:r #:coalton-library/result)
    (:st #:coalton-library/monad/statet)
    (:env #:coalton-library/monad/environment)
    (:it #:coalton-library/iterator)
@@ -52,6 +53,15 @@
   (repr :transparent)
   (define-type (IO :a)
     (IO% (Unit -> Result Dynamic :a)))
+
+  (inline)
+  (declare wrap-io%_ ((Unit -> :a) -> IO :a))
+  (define (wrap-io%_ f)
+    (IO%
+     (fn ()
+       (inline
+        (r:map-err to-dynamic
+                   (catch-thunk f))))))
 
   (inline)
   (declare run-io!% (IO :a -> Result Dynamic :a))
@@ -178,4 +188,4 @@ need to unlift, run, then immediately re-run a function. See, e.g., io-file:with
 
   (define-instance (MonadIo IO)
     (inline)
-    (define (wrap-io_ f) (IO% (map Ok f)))))
+    (define wrap-io_ wrap-io%_)))

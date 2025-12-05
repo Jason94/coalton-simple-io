@@ -28,6 +28,8 @@
    #:do-handle-all
 
    #:raise-result
+   ;; Re-export for convenience
+   #:UnhandledError
    ))
 (in-package :io/exception)
 
@@ -48,6 +50,9 @@
   ;; exceptions are raised. The alternative is to limit those functions to
   ;; just instances of UnliftIo.
   (define-class (MonadIo :m => MonadIoException :m)
+    "A MonadIo that can raise and handle exceptions. IMPORTANT: Any MonadIoException
+must catch and wrap all unhandled errors inside a wrap-io call as an UnhandledError.
+See utils/catch-thunk."
     (raise
      "Raise an exception."
      (RuntimeRepr :e => :e -> :m :a))

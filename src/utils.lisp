@@ -3,20 +3,46 @@
   (:use
    #:coalton
    #:coalton-prelude
+   #:coalton-library/system
    #:coalton-library/types
    )
   (:export
+   #:UnhandledError
+   #:catch-thunk
    #:force-string
    #:compose2
    #:Dynamic
    #:to-dynamic
    #:cast
+   #:throw-dynamic
    ))
 (in-package :io/utils)
 
 (named-readtables:in-readtable coalton:coalton)
 
 (coalton-toplevel
+  (derive Eq)
+  (repr :lisp)
+  (define-type (UnhandledError :e)
+    "An unhandled error that was thrown inside a wrap-io call."
+    (UnhandledError :e))
+
+  (define-instance (Signalable :e => Signalable (UnhandledError :e))
+    (define (error (UnhandledError e))
+      (error e)))
+
+  (declare catch-thunk ((Unit -> :a) -> Result (UnhandledError :e) :a))
+  (define (catch-thunk thunk)
+    "Wraps `thunk` in a Lisp `handler-case`, and captures the output
+as Err or Ok. Useful if you want to capture any thrown error, which is
+currently not possible natively in Coalton. Works even with custom
+Coalton exceptions via `define-exception`."
+    ;; TODO: Test this in release mode...
+    (lisp (Result (UnhandledError :e) :a) (thunk)
+      (cl:handler-case (Ok (call-coalton-function thunk))
+        (cl:error (e)
+          (Err (UnhandledError e))))))
+
   (declare force-string (:a -> String))
   (define (force-string x)
     (lisp String (x)
@@ -29,6 +55,10 @@
   (declare proxy-outer (Proxy :a -> Proxy (:m :a)))
   (define (proxy-outer _)
     Proxy)
+
+  ;;;
+  ;;; Dynamic
+  ;;;
 
   (repr :native cl:t)
   (define-type Anything)
@@ -59,4 +89,10 @@ representation. To be safe, only use on types that have `(repr :lisp)`."
          (Some (lisp :b (dyn-val) dyn-val))
          None)
      (proxy-outer prx-b)))
+
+  (declare throw-dynamic (Dynamic -> :a))
+  (define (throw-dynamic (Dynamic% val _))
+    "Throw the dynamic value. Will fail if it isn't a Signalable/LispCondition."
+    (lisp :a (val)
+      (cl:error val)))
   )

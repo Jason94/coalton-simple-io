@@ -4,8 +4,11 @@
    #:coalton
    #:coalton-prelude
    #:coalton-library/functions
+   #:coalton-library/monad/classes
    #:io/utils
-   #:io/monad-io)
+   #:io/monad-io
+   #:io/exception
+   #:io/resource)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
    #:LoopT)
   (:local-nicknames
@@ -34,7 +37,9 @@
    #:is-empty-mvar
 
    #:with-mvar
+   #:with-mvar_
    #:do-with-mvar
+   #:do-with-mvar_
 
    #:MChan
    #:new-empty-chan
@@ -93,9 +98,12 @@ True if the put succeeds."
      "Return True if the MVar is currently empty."
      (MVar :a -> :m Boolean))
     (with-mvar
-     "Perform an IO action with the value from an MVar, without removing
-the value. Blocks until the MVar is full."
-     (BaseIo :r => MVar :a -> (:a -> :r :b) -> :m :b)))
+     "Modify with the result of an operation. Blocks until MVar is full.
+If the operation raises an exception, will restore the MVar value and re-raise.
+If other threads are calling PUT-MVAR while the operation is running,
+they can block this thread until another thread takes the MVar."
+     ((UnliftIo :r :i) (LiftTo :r :m) (MonadIoException :i)
+      => MVar :a -> (:a -> :r :b) -> :m :b)))
 
   (inline)
   (declare new-mvar% (MonadIo :m => :a -> :m (MVar :a)))
@@ -111,7 +119,6 @@ the value. Blocks until the MVar is full."
     (wrap-io
       (MVar (lk:new) (cv:new) (c:new None))))
 
-  ;; TODO: Find a way to do error handling here.
   (declare take-mvar% (MonadIo :m => MVar :a -> :m :a))
   (define (take-mvar% mvar)
     (wrap-io
@@ -128,7 +135,6 @@ the value. Blocks until the MVar is full."
                      (lp))))))
         (lp))))
 
-  ;; TODO: Find a way to do error handling here
   (declare put-mvar% (MonadIo :m => MVar :a -> :a -> :m Unit))
   (define (put-mvar% mvar val)
     (wrap-io
@@ -148,7 +154,6 @@ the value. Blocks until the MVar is full."
                      (lp))))))
         (lp))))
 
-  ;; TODO: Find a way to do error handling here
   (declare try-take-mvar% (MonadIo :m => MVar :a -> :m (Optional :a)))
   (define (try-take-mvar% mvar)
     (wrap-io
@@ -163,7 +168,6 @@ the value. Blocks until the MVar is full."
          (lk:release (.lock mvar))
          None))))
 
-  ;; TODO: Find a way to do error handling here
   (declare try-put-mvar% (MonadIo :m => MVar :a -> :a -> :m Boolean))
   (define (try-put-mvar% mvar val)
     (wrap-io
@@ -178,7 +182,6 @@ the value. Blocks until the MVar is full."
          (cv:notify (.cvar mvar))
          True))))
 
-  ;; TODO: Find a way to do error handling here
   (declare read-mvar% (MonadIo :m => MVar :a -> :m :a))
   (define (read-mvar% mvar)
     (wrap-io
@@ -193,7 +196,6 @@ the value. Blocks until the MVar is full."
                      (lp))))))
         (lp))))
 
-  ;; TODO: Does this work without any locking at all?
   (declare try-read-mvar% (MonadIo :m => MVar :a -> :m (Optional :a)))
   (define (try-read-mvar% mvar)
     (wrap-io
@@ -207,7 +209,6 @@ the value. Blocks until the MVar is full."
          (lk:release (.lock mvar))
          None))))
 
-  ;; TODO: Find a way to do error handling here
   (declare swap-mvar% (MonadIo :m => MVar :a -> :a -> :m :a))
   (define (swap-mvar% mvar new-val)
     (wrap-io
@@ -235,13 +236,22 @@ the value. Blocks until the MVar is full."
       (lk:release (.lock mvar))
       result))
 
-  (declare with-mvar% ((BaseIo :r) (MonadIo :m) => MVar :a -> (:a -> :r :b) -> :m :b))
+  (declare with-mvar% ((MonadIo :m) (UnliftIo :r :i) (LiftTo :r :m) (MonadIoException :i)
+                       => MVar :a -> (:a -> :r :b) -> :m :b))
   (define (with-mvar% mvar op)
-    (do
-      (x <- (read-mvar% mvar))
-      (result <-
-       (wrap-io (run! (op x))))
-      (pure result))))
+    (lift-to
+     (with-run-in-io
+       (fn (run)
+         (lift-io
+          (bracket-io_ (take-mvar% mvar)
+                       (put-mvar% mvar)
+                       (fn (x)
+                         (run (op x)))))))))
+           ;; (do
+           ;;  (x <- (take-mvar% mvar))
+           ;;  (result <- (run (op x)))
+           ;;  (pure result)))))))
+  )
 
 (cl:defmacro implement-monad-io-mvar (monad)
   `(define-instance (MonadIoMVar ,monad)
@@ -273,7 +283,7 @@ Example:
      (define try-read-mvar  (compose lift try-read-mvar))
      (define swap-mvar      (compose2 lift swap-mvar))
      (define is-empty-mvar  (compose lift is-empty-mvar))
-     (define with-mvar      (compose2 lift with-mvar))))
+     (define with-mvar      with-mvar)))
 
 (coalton-toplevel
   ;;
@@ -286,6 +296,24 @@ Example:
 
 (cl:defmacro do-with-mvar ((sym mvar) cl:&body body)
   `(with-mvar
+     ,mvar
+     (fn (,sym)
+       (do
+        ,@body))))
+
+;;;
+;;; Other MVar Functions
+;;;
+
+(coalton-toplevel
+
+  (declare with-mvar_ ((LiftTo io:IO :m) (MonadIoMVar :m) => MVar :a -> (:a -> io:IO :b) -> :m :b))
+  (define with-mvar_ with-mvar)
+
+  )
+
+(cl:defmacro do-with-mvar_ ((sym mvar) cl:&body body)
+  `(with-mvar_
      ,mvar
      (fn (,sym)
        (do

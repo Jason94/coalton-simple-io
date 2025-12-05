@@ -71,3 +71,7 @@ _coalton-io_ has two example programs to demonstrate how to use the `IO` type:
 
 * [Hangman](examples/hangman.lisp) - Play a game of hangman in the terminal. Shows `IO` basics and terminal IO.
 * [Channels & Threading](examples/channels-threading.lisp) - Multithreaded application to process an input data file. Shows how to mix different `IO` effects, multithreading, and passing data safely between threads.
+
+## TODOs
+
+* [ ] Standardize naming convention and type signatures with `_` suffix. (Should probably always mean pegged to IO)

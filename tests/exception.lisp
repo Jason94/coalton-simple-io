@@ -26,10 +26,18 @@
   (define-type TestException
     (TE String))
 
+  (define-instance (Signalable TestException)
+    (define (error (TE s))
+      (error s)))
+
   (derive Eq)
   (repr :lisp)
   (define-type TestException2
-    (TE2 String)))
+    (TE2 String))
+
+  (define-instance (Signalable TestException2)
+    (define (error (TE2 s))
+      (error s))))
 
 (define-test test-try-ok ()
   (let result =

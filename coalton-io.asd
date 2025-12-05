@@ -48,6 +48,7 @@ mutable variables, multithreading, and several data structures to safely share s
                  (:file "random")
                  (:file "thread")
                  (:file "mvar")
+                 (:file "future")
                  (:file "package"))))
   :description "Test system for coalton-io"
   :perform (test-op (op c) (symbol-call '#:coalton-io/tests '#:run-tests)))

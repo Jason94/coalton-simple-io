@@ -40,11 +40,11 @@
     (Errored :e))
 
   ;; NOTE: AKA `bracket-io` in Haskell/Scala Cats/etc.
-  (declare bracket-io ((MonadIoException :m) (RuntimeRepr :e)
-                          => :m :r
-                          -> (:r -> ExitCase :e -> :m :a)
-                          -> (:r -> :m :b)
-                          -> :m :b))
+  (declare bracket-io ((MonadIoException :m) (RuntimeRepr :e) (Signalable :e)
+                       => :m :r
+                       -> (:r -> ExitCase :e -> :m :a)
+                       -> (:r -> :m :b)
+                       -> :m :b))
   (define (bracket-io acquire-op release-op computation-op)
     "First, acquire a resource with ACQUIRE-OP. Then run COMPUTATION-OP with the
 resource. Finally, run RELEASE-OP on the resource and ExitCase of the computation.

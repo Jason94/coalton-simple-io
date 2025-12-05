@@ -27,9 +27,11 @@
 
    #:raise-io
    #:raise-io_
+   #:raise-dynamic-io
    #:reraise-io
    #:handle-io
    #:handle-all-io
+   #:try-dynamic-io
 
    #:uith-run-in-simple-io
 
@@ -114,12 +116,17 @@
            (run-io!% (fa->io-b a))))))))
 
   (inline)
-  (declare raise-io (RuntimeRepr :e => :e -> IO :a))
+  (declare raise-io ((RuntimeRepr :e) (Signalable :e) => :e -> IO :a))
   (define (raise-io e)
     (IO% (fn () (Err (to-dynamic e)))))
 
   (inline)
-  (declare raise-io_ (RuntimeRepr :e => :e -> IO Unit))
+  (declare raise-dynamic-io (Dynamic -> IO :a))
+  (define (raise-dynamic-io dyn)
+    (IO% (fn () (Err dyn))))
+
+  (inline)
+  (declare raise-io_ ((RuntimeRepr :e) (Signalable :e) => :e -> IO Unit))
   (define raise-io_ raise-io)
 
   (inline)
@@ -167,6 +174,14 @@
            (Ok a))
           ((Err _)
            (run-io!% (handle-op))))))))
+
+  (inline)
+  (declare try-dynamic-io (IO :a -> IO (Result Dynamic :a)))
+  (define (try-dynamic-io io-op)
+    (IO%
+     (fn ()
+       (Ok
+        (run-io!% io-op)))))
 
   (define-instance (BaseIo IO)
     (define run! run-io!))

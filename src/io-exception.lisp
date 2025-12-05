@@ -19,8 +19,10 @@
   (:export
    #:MonadIoException
    #:raise
+   #:raise-dynamic
    #:reraise
    #:try
+   #:try-dynamic
    #:handle
    #:handle-all
    #:do-reraise
@@ -55,7 +57,11 @@ must catch and wrap all unhandled errors inside a wrap-io call as an UnhandledEr
 See utils/catch-thunk."
     (raise
      "Raise an exception."
-     (RuntimeRepr :e => :e -> :m :a))
+     ((RuntimeRepr :e) (Signalable :e) => :e -> :m :a))
+    (raise-dynamic
+     "Raise an exception wrapped in a Dynamic. Mainly useful to hand-off eexceptions
+between IO instances."
+     (Dynamic -> :m :a))
     (reraise
      "Run an operation, run a catch operation if the first operation raised,
 then re-raise the exception. If the catch operation raises, that exception will
@@ -67,7 +73,10 @@ that matches :e."
      (RuntimeRepr :e => :m :a -> (:e -> :m :a) -> :m :a))
     (handle-all
      "Run an operation, immediately handling any exceptions raised."
-     (:m :a -> (Unit -> :m :a) -> :m :a)))
+     (:m :a -> (Unit -> :m :a) -> :m :a))
+    (try-dynamic
+     "Bring any unhandled exceptions into a Result wrapped in Dynamic."
+     (:m :a -> :m (Result Dynamic :a))))
 
   (inline)
   (declare try ((MonadIoException :m) (RuntimeRepr :e) => :m :a -> :m (Result :e :a)))
@@ -79,7 +88,8 @@ Continues to carry any unhandeld exceptions not of type :e."
      (compose pure Err)))
 
   (inline)
-  (declare raise-result ((MonadIoException :m) (RuntimeRepr :e) => :m (Result :e :a) -> :m :a))
+  (declare raise-result ((MonadIoException :m) (RuntimeRepr :e) (Signalable :e)
+                         => :m (Result :e :a) -> :m :a))
   (define (raise-result io-res)
     "Raise any (Err :e) into :m. Useful if (Err :e) represents any unhandleable, fatal
 exception to the program."
@@ -169,11 +179,29 @@ Example:
         (fn ()
           (st:run-stateT (st-catch-op) s))))))
 
+  (inline)
+  (declare try-dynamic-stateT (MonadIoException :m
+                               => st:StateT :s :m :a
+                               -> st:StateT :s :m (Result Dynamic :a)))
+  (define (try-dynamic-stateT st-op)
+    (st:StateT
+     (fn (s)
+       (let result? =
+         (try-dynamic
+          (st:run-stateT st-op s)))
+       (matchM result?
+         ((Ok (Tuple s2 x))
+          (pure (Tuple s2 (Ok x))))
+         ((Err dyn-e)
+          (pure (Tuple s (Err dyn-e))))))))
+
   (define-instance (MonadIoException :m => MonadIoException (st:StateT :s :m))
     (define raise (compose lift raise))
+    (define raise-dynamic (compose lift raise-dynamic))
     (define reraise reraise-stateT)
     (define handle handle-stateT)
-    (define handle-all handle-all-statet))
+    (define handle-all handle-all-statet)
+    (define try-dynamic try-dynamic-stateT))
 
   (inline)
   (declare handle-envT ((MonadIoException :m) (RuntimeRepr :err)
@@ -217,11 +245,29 @@ Example:
            (env-handle-op)
            env))))))
 
+  (inline)
+  (declare try-dynamic-envT (MonadIoException :m
+                             => e:EnvT :e :m :a
+                             -> e:EnvT :e :m (Result Dynamic :a)))
+  (define (try-dynamic-envT env-op)
+    (e:EnvT
+     (fn (env)
+       (let result? =
+         (try-dynamic
+          (e:run-envT env-op env)))
+       (matchM result?
+         ((Ok x)
+          (pure (Ok x)))
+         ((Err dyn-e)
+          (pure (Err dyn-e)))))))
+
   (define-instance (MonadIoException :m => MonadIoException (e:EnvT :e :m))
     (define raise (compose lift raise))
+    (define raise-dynamic (compose lift raise-dynamic))
     (define reraise reraise-envT)
     (define handle handle-envT)
-    (define handle-all handle-all-envT))
+    (define handle-all handle-all-envT)
+    (define try-dynamic try-dynamic-envT))
 
   ;; TODO: Add instance for LoopT
   )
@@ -233,7 +279,9 @@ Example:
 (coalton-toplevel
   (define-instance (MonadIoException io:IO)
     (define raise io:raise-io)
+    (define raise-dynamic io:raise-dynamic-io)
     (define reraise io:reraise-io)
     (define handle io:handle-io)
-    (define handle-all io:handle-all-io))
+    (define handle-all io:handle-all-io)
+    (define try-dynamic io:try-dynamic-io))
   )

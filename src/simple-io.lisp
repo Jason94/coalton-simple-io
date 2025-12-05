@@ -7,7 +7,6 @@
    #:coalton-library/types
    #:coalton-library/experimental/do-control-core
    #:io/utils
-   #:io/unlift
    #:io/monad-io)
   (:import-from #:coalton-library/experimental/loops
    #:dolist)

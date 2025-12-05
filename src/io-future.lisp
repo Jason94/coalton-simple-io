@@ -9,7 +9,6 @@
    #:io/utils
    #:io/monad-io
    #:io/exception
-   #:io/unlift
    #:io/thread
    #:io/mvar)
   (:local-nicknames

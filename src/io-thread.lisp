@@ -6,8 +6,7 @@
    #:coalton-library/functions
    #:coalton-library/monad/classes
    #:io/utils
-   #:io/monad-io
-   #:io/unlift)
+   #:io/monad-io)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
    #:LoopT)
   (:local-nicknames

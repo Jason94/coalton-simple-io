@@ -4,7 +4,6 @@
    #:coalton
    #:coalton-prelude
    #:io/utils
-   #:io/unlift
    #:io/exception
    #:io/monad-io
    #:io/resource)

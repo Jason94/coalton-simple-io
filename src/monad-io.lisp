@@ -11,21 +11,32 @@
    #:LoopT)
   (:local-nicknames
    (:st #:coalton-library/monad/statet)
-   (:env #:coalton-library/monad/environment)
+   (:e #:coalton-library/monad/environment)
    (:it #:coalton-library/iterator)
    (:c #:coalton-library/cell))
   (:export
+   ;;; Core MonadIo & BaseIo classes
    #:MonadIo
    #:derive-monad-io
    #:wrap-io_
    #:wrap-io
    #:BaseIo
    #:run!
+   #:run-as!
+   ;;; UnliftIo & LiftIo
+   #:LiftIo
+   #:lift-io_
+   #:lift-io
+   #:derive-lift-io
+
+   #:UnliftIo
+   #:with-run-in-io
+
+   ;;; Fused Helpers
    #:map-into-io
    #:foreach-io
    #:do-map-into-io
    #:do-foreach-io
-   #:run-as!
    ))
 (in-package :io/monad-io)
 
@@ -87,7 +98,7 @@ putting in the full type of M-OP, not just (IO :a).
   ;;
 
   (derive-monad-io :m (st:StateT :s :m))
-  (derive-monad-io :m (env:EnvT :env :m))
+  (derive-monad-io :m (e:EnvT :env :m))
   (derive-monad-io :m (LoopT :m))
   )
 
@@ -132,3 +143,57 @@ and return the results."
      (fn (,var)
        (do
         ,@body))))
+
+;;;
+;;; Lift IO
+;;;
+
+(coalton-toplevel
+
+  (define-class ((Monad :m) (BaseIo :i) => LiftIo :i :m)
+    (lift-io (BaseIo :i => :i :a -> :m :a)))
+
+  (define-instance (BaseIo :i => LiftIo :i :i)
+    (inline)
+    (define lift-io id)))
+
+(cl:defmacro derive-lift-io (monad-param monadT-form)
+  "Automatically derive an instance of LiftIo for a monad transformer.
+
+Example:
+  (derive-lift-io :m (e:EnvT :e :m))"
+  `(define-instance ((LiftIo :i ,monad-param) => LiftIo :i ,monadT-form)
+     (define lift-io (compose lift lift-io))))
+
+(coalton-toplevel
+
+  ;;
+  ;; Std. Library Transformer Instances
+  ;;
+
+  (derive-lift-io :m (st:StateT :s :m))
+  (derive-lift-io :m (e:EnvT :env :m))
+  (derive-lift-io :m (LoopT :m))
+  )
+
+;;;
+;;; Unlift IO
+;;;
+
+(coalton-toplevel
+  ;; NOTE: Defining a "wrapper" around with-run-in-io so that we can specialize on it.
+  (define-class ((MonadIo :m) (LiftIo :i :m) => UnliftIo :m :i (:m -> :i))
+    (with-run-in-io (((:m :a -> :i :a) -> :i :b) -> :m :b)))
+
+  (define-instance ((BaseIo :r) (UnliftIo :m :r) => UnliftIo (e:EnvT :env :m) :r)
+    (inline)
+    (define (with-run-in-io enva->ioa-->iob)
+      (e:EnvT
+       (fn (env)
+         (with-run-in-io
+           (fn (ma->ioa-->iob)
+             (enva->ioa-->iob
+              (fn (m-env)
+               (ma->ioa-->iob
+                (e:run-envT m-env env))))))))))
+  )

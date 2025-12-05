@@ -23,6 +23,7 @@
    #:try
    #:handle
    #:handle-all
+   #:do-reraise
    #:do-handle
    #:do-handle-all
 
@@ -83,6 +84,13 @@ exception to the program."
       ((Err e)
        (raise e))))
   )
+
+(cl:defmacro do-reraise (op cl:&body body)
+  "Convenience macro for reraise."
+  `(reraise ,op
+    (fn ()
+      (do
+       ,@body))))
 
 (cl:defmacro do-handle (op (err-sym) cl:&body body)
   "Convenience macro for handle."

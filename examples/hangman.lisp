@@ -8,9 +8,11 @@
    #:coalton-library/monad/environment
    #:coalton-library/experimental/do-control-core
    #:coalton-library/experimental/do-control-loops
+   #:io/utils
    #:io/simple-io
    #:io/term
-   #:io/random)
+   #:io/random
+   #:io/exception)
   (:local-nicknames
    (:lp #:coalton-library/experimental/do-control-loops-adv)
    (:itr #:coalton-library/iterator)
@@ -183,6 +185,9 @@
      (let remaining-guesses = (- num-guesses n-wrong))
      (write-line (<> (<> "You have " (into remaining-guesses)) " remaining incorrect guesses."))
      (write-line "")))
+  )
+
+(coalton-toplevel
 
   (declare over-and-failed? ((MonadState HangmanState :m)
                              (MonadEnvironment HangmanConf :m)
@@ -227,22 +232,20 @@
     ;; in memory at once, just to calculate the random word.
     (do
      (n-words-var <- (m:new-var 0))
-     (f:do-with-open-file (f_:Input (into fname)) (fs)
-       (do-loop-while-valM (_ (f:read-line fs))
-         (m:modify n-words-var (+ 1)))
-       (pure (Ok Unit)))
+     (do-reraise
+         (f:do-with-open-file (f_:Input (into fname)) (fs)
+           (do-loop-while-valM (_ (f:read-line fs))
+             (m:modify n-words-var (+ 1)))
+           (pure Unit))
+       (write-line "Could not find dictionary file.")
+       (write-line "(This often happens from Slime, try using ',cd')"))
      (n-words <- (m:read n-words-var))
      (n-word <- (random_ n-words))
-     (word? <-
-       (f:do-with-open-file (f_:Input (into fname)) (fs)
-         (do-loop-times (_ n-word)
-           (f:read-line fs))
-         (f:read-line fs)))
-     (do-if-val (word word?)
-           (pure word)
-       (write-line "Could not find dictionary file.")
-       (write-line "(This often happens from Slime, try using ',cd')")
-       (pure "fence"))))
+     (f:do-with-open-file (f_:Input (into fname)) (fs)
+       (do-loop-times (_ n-word)
+         (f:read-line fs))
+       (raise-result
+        (f:read-line fs)))))
   )
 
 (cl:defun play ()
@@ -251,3 +254,4 @@
              7
              (get-word-from-dictionary "hangman_dictionary.txt"))
             hangman)))
+

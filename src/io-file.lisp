@@ -45,6 +45,7 @@
    #:write-line
    #:read-char
    #:read-line
+   #:read-line#
    #:write-char
 
    #:read-file-to-vector
@@ -59,7 +60,7 @@
    #:with-open-file_
    #:with-temp-file_
    #:with-temp-directory_
-   #:nith-open-file
+   #:with-open-file
    #:with-temp-file
    #:with-temp-directory
 
@@ -456,19 +457,19 @@ Usage:
 
   (declare with-open-file ((file:File :a) (UnliftIo :m io:IO) (LiftTo io:IO :m)
                            => file:StreamOptions
-                           -> ((file:FileStream :a) -> io:IO (Result file:FileError :b))
-                           -> :m (Result file:FileError :b)))
+                           -> ((file:FileStream :a) -> io:IO :b)
+                           -> :m :b))
   (define with-open-file with-open-file_)
 
   (declare with-temp-file ((file:File :a) (UnliftIo :m io:IO) (LiftTo io:IO :m)
                            => String
-                           -> ((file:FileStream :a) -> io:IO (Result file:FileError :b))
-                           -> :m (Result file:FileError :b)))
+                           -> ((file:FileStream :a) -> io:IO :b)
+                           -> :m :b))
   (define with-temp-file with-temp-file_)
 
   (declare with-temp-directory ((UnliftIo :m io:IO) (LiftTo io:IO :m)
-                                => (file:Pathname -> io:IO (Result file:FileError :a))
-                                -> :m (Result file:FileError :a)))
+                                => (file:Pathname -> io:IO :a)
+                                -> :m :a))
   (define with-temp-directory with-temp-directory_))
 
 (cl:defmacro do-with-open-file (opts (fs) cl:&body body)

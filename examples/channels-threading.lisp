@@ -6,6 +6,7 @@
    #:io/simple-io
    #:io/thread
    #:io/term
+   #:io/exception
    #:io/random
    #:io/future
    #:coalton-library/experimental/do-control-core
@@ -31,7 +32,11 @@
 ;;; Future to await the final sum produced by the summer-thread.
 
 (coalton-toplevel
-  (define data-filename "rands.txt")
+  (define data-filename "~/rands.txt")
+
+  (declare data-pathname f_:Pathname)
+  (define data-pathname (into data-filename))
+
   (declare data-rows UFix)
   (define data-rows 1000000)
   (declare data-max UFix)
@@ -45,11 +50,13 @@
      (exists? <- (map (r:ok-or-def False)
                       (f:exists? data-filename)))
      (do-when (not exists?)
+       (write-line "Writing data file...")
        (f:do-with-open-file (f_:Output (into data-filename) f_:Overwrite) (fs)
          (do-loop-times (_ data-rows)
            (x <- (random_ data-max))
            (f:write-line fs (into x)))
-         (pure (Ok Unit))))))
+         (pure Unit))
+       (write-line "Done writing data file..."))))
 
   (declare reader-thread (mv:MChan (Optional String) -> IO Unit))
   (define (reader-thread mchan-input)
@@ -57,7 +64,7 @@
      (f:do-with-open-file (f_:Input (into data-filename)) (fs)
        (do-loop-while-valM (line (f:read-line fs))
          (mv:push-chan mchan-input (Some line)))
-       (pure (Ok Unit)))
+       (pure Unit))
      (do-loop-times (_ n-workers)
        (mv:push-chan mchan-input None))))
 
@@ -86,9 +93,7 @@
   (declare sum-file (IO Integer))
   (define sum-file
     (do
-     (write-line "Writing data file...")
      write-data-file
-     (write-line "Done writing file...")
      (input-chan <- mv:new-empty-chan)
      (ints-chan <- mv:new-empty-chan)
      (write-line "Forking threads...")

@@ -74,6 +74,9 @@ resource. Finally, run RELEASE-OP on the resource and ExitCase of the computatio
 This version runs RELEASE-OP for any kind of error, and doesn't take an ExitCase."
     (do
      (resource <- acquire-op)
-     (reraise (computation-op resource)
+     (reraise (do
+               (result <- (computation-op resource))
+               (release-op resource)
+               (pure result))
               (const (release-op resource)))))
   )

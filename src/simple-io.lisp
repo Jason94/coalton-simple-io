@@ -77,11 +77,11 @@
 
   (define-instance (Applicative IO)
     (inline)
-    (define (pure x) (IO% (const (Ok x))))
+    (define (pure x) (IO% (fn () (Ok x))))
     (inline)
     (define (liftA2 fa->b->c (IO% f->a?) (IO% f->b?))
       (IO%
-       (const
+       (fn ()
         (match (f->a?)
           ((Err e1)
            (Err e1))
@@ -96,7 +96,7 @@
     (inline)
     (define (>>= (IO% f->a?) fa->io-b)
       (IO%
-       (const
+       (fn ()
         (match (f->a?)
           ((Err e)
            (Err e))
@@ -106,7 +106,7 @@
   (inline)
   (declare raise-io (RuntimeRepr :e => :e -> IO :a))
   (define (raise-io e)
-    (IO% (const (Err (to-dynamic e)))))
+    (IO% (fn () (Err (to-dynamic e)))))
 
   (inline)
   (declare raise-io_ (RuntimeRepr :e => :e -> IO Unit))
@@ -133,7 +133,7 @@
   (declare handle-io (RuntimeRepr :e => IO :a -> (:e -> IO :a) -> IO :a))
   (define (handle-io io-op handle-op)
     (IO%
-     (const
+     (fn ()
       (let ((result (run-io!% io-op)))
         (match result
           ((Ok a)
@@ -150,7 +150,7 @@
   (define (handle-all-io io-op handle-op)
     "Run IO-OP, and run HANDLE-OP to handle exceptions of any type thrown by IO-OP."
     (IO%
-     (const
+     (fn ()
       (let ((result (run-io!% io-op)))
         (match result
           ((Ok a)

@@ -32,7 +32,11 @@
    #:handle-all-io
    #:try-dynamic-io
 
-   #:uith-run-in-simple-io
+   #:with-run-in-io_
+   #:foreach-io_
+   #:do-foreach-io_
+   #:map-into-io_
+   #:do-map-into-io_
 
    ;; Re-export the basic IO operations for usability, so that users
    ;; who want to use IO don't have to import two files.
@@ -190,8 +194,8 @@
     (define (with-run-in-io inner)
       (inner id)))
 
-  (declare with-run-in-simple-io (UnliftIo :m IO => (((:m :a -> IO :a) -> IO :b) -> :m :b)))
-  (define with-run-in-simple-io
+  (declare with-run-in-io_ (UnliftIo :m IO => (((:m :a -> IO :a) -> IO :b) -> :m :b)))
+  (define with-run-in-io_
     "`with-run-in-io`, but pegged to the simple-io implementation. Useful when you
 need to unlift, run, then immediately re-run a function. See, e.g., io-file:with-open-file%."
     with-run-in-io)
@@ -203,3 +207,61 @@ need to unlift, run, then immediately re-run a function. See, e.g., io-file:with
   (define-instance (MonadIo IO)
     (inline)
     (define wrap-io_ wrap-io%_)))
+
+;;;
+;;; Extra Functions
+;;;
+
+(coalton-toplevel
+
+  ;; TODO: This might not be more efficient, if the inliner is able to eliminate
+  ;; the (run) call in `map-into-io` for the (UnliftIo IO IO) case. Test with
+  ;; a benchmark. But even if they're not more efficient, they still solve some
+  ;; inference issues.
+  (declare map-into-io_ ((LiftIo IO :m) (it:IntoIterator :i :a)
+                         => :i -> (:a -> IO :b) -> :m (List :b)))
+  (define (map-into-io_ itr a->mb)
+    "Efficiently perform a monadic operation for each element of an iterator
+and return the results. More efficient than map-into-io, if you can run your
+effect in a BaseIo."
+    (let io-prx = Proxy)
+    (lift-io
+     (as-proxy-of
+      (wrap-io
+        (let results = (c:new (make-list)))
+        (for a in (it:into-iter itr)
+          (c:push! results (run! (as-proxy-of
+                                  (a->mb a)
+                                  io-prx))))
+        (reverse (c:read results)))
+      (proxy-swap-inner io-prx))))
+
+  (declare foreach-io_ ((LiftIo IO :m) (it:IntoIterator :i :a)
+                        => :i -> (:a -> IO :b) -> :m Unit))
+  (define (foreach-io_ itr a->mb)
+    "Efficiently perform a monadic operation for each element of an iterator.
+More efficient than foreach-io, if you can run your effect in a BaseIo."
+    (let io-prx = Proxy)
+    (lift-io
+     (as-proxy-of
+      (wrap-io
+        (for a in (it:into-iter itr)
+          (run! (as-proxy-of
+                 (a->mb a)
+                 io-prx)))
+        Unit)
+      (proxy-swap-inner io-prx))))
+
+  )
+
+(cl:defmacro do-map-into-io_ ((var lst) cl:&body body)
+  `(map-into-io_ ,lst
+     (fn (,var)
+       (do
+        ,@body))))
+
+(cl:defmacro do-foreach-io_ ((var into-itr) cl:&body body)
+  `(foreach-io_ ,into-itr
+     (fn (,var)
+       (do
+        ,@body))))

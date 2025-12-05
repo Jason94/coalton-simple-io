@@ -38,21 +38,21 @@
 (define-test test-map-into-io-empty ()
   (let result =
     (run-io!
-     (do-map-into-io (x (make-list))
+     (do-map-into-io_ (x (make-list))
        (pure (+ x 10)))))
   (is (== Nil result)))
 
 (define-test test-map-into-io ()
   (let result =
     (run-io!
-     (do-map-into-io (x (make-list 0 10 20 30))
+     (do-map-into-io_ (x (make-list 0 10 20 30))
        (pure (+ x 10)))))
   (is (== (make-list 10 20 30 40) result)))
 
 (define-test test-foreach-io-empty ()
   (let run-ints = (c:new Nil))
   (run-io!
-   (do-foreach-io (x (the (List Integer) (make-list)))
+   (do-foreach-io_ (x (the (List Integer) (make-list)))
      (wrap-io
        (c:push! run-ints x))))
   (is (== Nil (c:read run-ints))))
@@ -60,7 +60,7 @@
 (define-test test-foreach-io ()
   (let run-ints = (c:new Nil))
   (run-io!
-   (do-foreach-io (x (make-list 0 10 20 30))
+   (do-foreach-io_ (x (make-list 0 10 20 30))
      (wrap-io
        (c:push! run-ints x))))
   (is (== (make-list 0 10 20 30)

@@ -4,12 +4,14 @@
    #:coalton
    #:coalton-prelude
    #:coalton-library/functions
+   #:coalton-library/monad/classes
    #:io/utils)
   (:import-from #:coalton-library/experimental/loops
    #:dolist)
   (:import-from #:coalton-library/experimental/do-control-loops-adv
    #:LoopT)
   (:local-nicknames
+   (:t #:coalton-library/types)
    (:st #:coalton-library/monad/statet)
    (:e #:coalton-library/monad/environment)
    (:it #:coalton-library/iterator)
@@ -102,48 +104,6 @@ putting in the full type of M-OP, not just (IO :a).
   (derive-monad-io :m (LoopT :m))
   )
 
-;;
-;; Efficient Iteration Ops
-;;
-
-(coalton-toplevel
-  (inline)
-  (declare map-into-io ((BaseIo :m) (it:IntoIterator :i :a)
-                         => :i -> (:a -> :m :b) -> :m (List :b)))
-  (define (map-into-io itr a->mb)
-    "Efficiently perform a monadic operation for each element of an iterator
-and return the results."
-    (wrap-io
-      (let results = (c:new (make-list)))
-      (for a in (it:into-iter itr)
-        (c:push! results (run! (a->mb a))))
-      (reverse (c:read results))))
-
-  (inline)
-  (declare foreach-io ((BaseIo :m) (it:IntoIterator :i :a) => :i -> (:a -> :m :b) -> :m Unit))
-  (define (foreach-io itr a->mb)
-    "Efficiently perform a monadic operation for each element of an iterator."
-    (wrap-io
-      (for a in (it:into-iter itr)
-        (run! (a->mb a)))
-      Unit)))
-
-;;
-;; Syntactic Sugar Macros
-;;
-
-(cl:defmacro do-map-into-io ((var lst) cl:&body body)
-  `(map-into-io ,lst
-     (fn (,var)
-       (do
-        ,@body))))
-
-(cl:defmacro do-foreach-io ((var into-itr) cl:&body body)
-  `(foreach-io ,into-itr
-     (fn (,var)
-       (do
-        ,@body))))
-
 ;;;
 ;;; Lift IO
 ;;;
@@ -197,3 +157,52 @@ Example:
                (ma->ioa-->iob
                 (e:run-envT m-env env))))))))))
   )
+
+;;
+;; Efficient Iteration Ops
+;;
+
+(coalton-toplevel
+  (declare map-into-io ((UnliftIo :r :io) (LiftTo :r :m) (it:IntoIterator :i :a)
+                         => :i -> (:a -> :r :b) -> :m (List :b)))
+  (define (map-into-io itr a->rb)
+    "Efficiently perform a monadic operation for each element of an iterator
+and return the results. If you're having inference issues, try map-into-io_"
+    (lift-to
+     (with-run-in-io
+         (fn (run)
+           (wrap-io
+             (let results = (c:new (make-list)))
+             (for a in (it:into-iter itr)
+               (c:push! results (run! (run (a->rb a)))))
+             (reverse (c:read results)))))))
+
+  (declare foreach-io ((UnliftIo :r :io) (LiftTo :r :m) (it:IntoIterator :i :a)
+                       => :i -> (:a -> :r :b) -> :m Unit))
+  (define (foreach-io itr a->mb)
+    "Efficiently perform a monadic operation for each element of an iterator.
+If you're having inference issues, try foreach-io_."
+    (lift-to
+     (with-run-in-io
+       (fn (run)
+         (wrap-io
+           (for a in (it:into-iter itr)
+             (run! (run (a->mb a))))
+           Unit)))))
+  )
+
+;;
+;; Syntactic Sugar Macros
+;;
+
+(cl:defmacro do-map-into-io ((var lst) cl:&body body)
+  `(map-into-io ,lst
+     (fn (,var)
+       (do
+        ,@body))))
+
+(cl:defmacro do-foreach-io ((var into-itr) cl:&body body)
+  `(foreach-io ,into-itr
+     (fn (,var)
+       (do
+        ,@body))))

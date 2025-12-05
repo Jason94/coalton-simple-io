@@ -15,6 +15,7 @@
    #:to-dynamic
    #:cast
    #:throw-dynamic
+   #:proxy-swap-inner
    ))
 (in-package :io/utils)
 
@@ -95,4 +96,8 @@ representation. To be safe, only use on types that have `(repr :lisp)`."
     "Throw the dynamic value. Will fail if it isn't a Signalable/LispCondition."
     (lisp :a (val)
       (cl:error val)))
+
+  (declare proxy-swap-inner (Proxy (:m :a) -> Proxy (:m :b)))
+  (define (proxy-swap-inner _)
+    Proxy)
   )

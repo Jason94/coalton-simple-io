@@ -21,6 +21,7 @@
    #:raise-dynamic
    #:reraise
    #:try
+   #:try-all
    #:try-dynamic
    #:handle
    #:handle-all
@@ -79,12 +80,21 @@ that matches :e."
 
   (inline)
   (declare try ((MonadIoException :m) (RuntimeRepr :e) => :m :a -> :m (Result :e :a)))
-  (define (try a)
+  (define (try op)
      "Bring any unhandled exceptions of type :e up into a Result.
 Continues to carry any unhandeld exceptions not of type :e."
     (handle
-     (map Ok a)
+     (map Ok op)
      (compose pure Err)))
+
+  (inline)
+  (declare try-all (MonadIoException :m => :m :a -> :m (Optional :a)))
+  (define (try-all op)
+    "Bring the result of OP up into an Optional. Returns None if OP
+raised any exceptions."
+    (handle-all
+     (map Some op)
+     (const (pure None))))
 
   (inline)
   (declare raise-result ((MonadIoException :m) (RuntimeRepr :e) (Signalable :e)

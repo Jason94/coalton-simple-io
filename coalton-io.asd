@@ -46,6 +46,7 @@ mutable variables, multithreading, and several data structures to safely share s
                  (:file "mut")
                  (:file "random")
                  (:file "thread")
+                 (:file "io-atomic")
                  (:file "mvar")
                  (:file "future")
                  (:file "package"))))

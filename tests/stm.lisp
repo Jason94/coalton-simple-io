@@ -9,6 +9,8 @@
         #:io/thread
         #:io/future
         #:io/stm)
+  (:import-from #:io/stm/stm-impl
+   #:tx-io!%)
   (:local-nicknames
    (:l #:coalton-library/list))
   )
@@ -70,11 +72,11 @@
       (x <- (new-tvar 0))
       (do-run-tx
         ;; Don't do this at home!
-        (n-retries <- (io/stm::tx-io!% (read retry-count)))
+        (n-retries <- (tx-io!% (read retry-count)))
         (do-if (> n-retries 0)
             (write-tvar x n-retries)
-          (io/stm::tx-io!% (write retry-count (1+ n-retries)))
-          (retry)))
+          (tx-io!% (write retry-count (1+ n-retries)))
+          retry))
       (run-tx (read-tvar x)))))
   (is (== 1 result)))
 
@@ -96,13 +98,13 @@
         (fork-future
          (do-run-tx
            (a-val <- (read-tvar a))
-           (io/stm::tx-io!% (modify observed-as (Cons a-val)))
+           (tx-io!% (modify observed-as (Cons a-val)))
            ;; Let the write-tx know that we've read the first tvar
-           (io/stm::tx-io!% (put-mvar read-gate Unit))
+           (tx-io!% (put-mvar read-gate Unit))
            ;; Wait for the write-tx to write to both tvars
-           (io/stm::tx-io!% (take-mvar write-gate))
+           (tx-io!% (take-mvar write-gate))
            (b-val <- (read-tvar b))
-           (io/stm::tx-io!% (modify observed-bs (Cons b-val)))
+           (tx-io!% (modify observed-bs (Cons b-val)))
            (pure (Tuple a-val b-val)))))
       (do-fork
         (take-mvar read-gate)

@@ -24,6 +24,7 @@
                  (:file "io-mvar")
                  (:file "io-future")
                  (:file "io-unique")
+                 (:file "stm/stm-impl")
                  (:file "io-stm")
                  (:file "io-all")
                  (:file "stubs/term")

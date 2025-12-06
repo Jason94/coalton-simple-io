@@ -11,7 +11,16 @@
   (:local-nicknames
    (:c #:coalton-library/cell)
    (:a #:coalton-threads/atomic))
-  (:export)
+  (:export
+   #:TVar
+   #:STM
+   #:new-tvar
+   #:read-tvar
+   #:write-tvar
+   #:retry
+   #:run-tx
+   #:do-run-tx
+   )
   )
 (in-package :io/stm)
 
@@ -180,7 +189,7 @@
   (declare log-write-value% (WriteHashTable% -> TVar :a -> :a -> Unit))
   (define (log-write-value% write-log addr val)
     (lisp :a (write-log addr val)
-      (cl:setf (cl:gethash write-log addr) val))
+      (cl:setf (cl:gethash addr write-log) val))
     Unit)
 
   (inline)
@@ -226,6 +235,12 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;        STM Implementation         ;;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (inline)
+  (declare new-tvar (MonadIo :m => :a -> :m (TVar :a)))
+  (define (new-tvar val)
+    (wrap-io
+      (TVar% (c:new val))))
 
   ;; NOTE: For now, using the coalton-threads Atomic Integer instead of
   ;; our atomics, because it's probably faster, since our atomic type doesn't
@@ -284,29 +299,33 @@
             ((Some x) x))))))
 
   (inline)
-  (declare tx-read% (MonadIo :m => TVar :a -> STM :m :a))
-  (define (tx-read% tvar)
+  (declare read-tvar (MonadIo :m => TVar :a -> STM :m :a))
+  (define (read-tvar tvar)
     (STM%
      (fn (tx-data)
        (wrap-io
          (match (logged-write-value% (.write-log tx-data) tvar)
-           ((Some val)
-            (TxSuccess (from-anything val)))
+           ((Some written-val)
+            (TxSuccess (from-anything written-val)))
            ((None)
-            (let validated-val =
-              (rec % ((val (tvar-value% tvar)))
-                ;; NOTE: We (probably?) don't need a memory barrier here
-                ;; because Validate() uses one anyway.
-                (if (== (cached-snapshot tx-data)
-                        (a:read global-lock))
-                    val
-                    (% (tvar-value% tvar)))))
-            (log-read-value tvar validated-val tx-data)
-            (TxSuccess validated-val)))))))
+            (rec % ((val (progn (mem-barrier)
+                                (tvar-value% tvar))))
+              (if (== (cached-snapshot tx-data)
+                      (a:read global-lock))
+                  (progn
+                    (log-read-value tvar val tx-data)
+                    (TxSuccess val))
+                  (match (validate% tx-data)
+                    ((TxAbort%)
+                     TxFailed)
+                    ((TxContinue% time)
+                     (c:write! (.lock-snapshot tx-data)
+                               time)
+                     (% (tvar-value% tvar))))))))))))
 
   (inline)
-  (declare tx-write% (MonadIo :m => TVar :a -> :a -> STM :m Unit))
-  (define (tx-write% tvar val)
+  (declare write-tvar (MonadIo :m => TVar :a -> :a -> STM :m Unit))
+  (define (write-tvar tvar val)
     (STM%
      (fn (tx-data)
        (wrap-io
@@ -314,25 +333,77 @@
           (log-write-value% (.write-log tx-data) tvar val))))))
 
   (inline)
-  (declare tx-commit% (MonadIo :m => STM :m Unit))
-  (define tx-commit%
-    (STM%
-     (fn (tx-data)
-       (wrap-io
-         (if (read-only? tx-data)
-             (TxSuccess Unit)
-             (progn
-               (while (not (a:cas! global-lock
-                                   (c:read (.lock-snapshot tx-data))
-                                   (1+ (c:read (.lock-snapshot tx-data)))))
-                 (let validate-res = (validate% tx-data))
-                 (match validate-res
-                   ((TxContinue% time)
-                    (c:write! (.lock-snapshot tx-data) time))
-                   ((TxAbort%)
-                    (error "Implement retries!!"))))
-               (commit-logged-writes (.write-log tx-data))
-               (a:incf! global-lock 1)
-               (TxSuccess Unit)))))))
+  (declare tx-commit-io% (MonadIo :m => TxData% -> :m Boolean))
+  (define (tx-commit-io% tx-data)
+    (wrap-io
+      (if (read-only? tx-data)
+          True
+          (progn
+            (let result = (c:new True))
+            (while (and
+                    ;; Stop looping if we already need to abort.
+                    (c:read result)
+                    (not (a:cas! global-lock
+                                 (c:read (.lock-snapshot tx-data))
+                                 (1+ (c:read (.lock-snapshot tx-data))))))
+              (let validate-res = (validate% tx-data))
+              (match validate-res
+                ((TxContinue% time)
+                 (c:write! (.lock-snapshot tx-data) time)
+                 Unit)
+                ((TxAbort%)
+                 (c:write! result False)
+                 Unit)))
+            (when (c:read result)
+              (commit-logged-writes (.write-log tx-data))
+              (a:incf! global-lock 1)
+              Unit)
+            (c:read result)))))
 
+  ;; TODO: Make this better, so that it blocks until a write tx completes
+  ;; instead of re-running forever. Right now this is really bad.
+  (inline)
+  (declare retry (MonadIo :m => Unit -> STM :m :a))
+  (define (retry)
+    (STM%
+     (const
+      (wrap-io
+        TxFailed))))
+
+  (inline)
+  (declare run-tx (MonadIo :m => STM :m :a -> :m :a))
+  (define (run-tx tx)
+    (rec % ()
+      (do
+       (tx-data <- (tx-begin-io%))
+       (do-matchM (run-stm% tx-data tx)
+         ((TxFailed)
+          (%))
+         ((TxSuccess val)
+          (commit-succeeded? <- (tx-commit-io% tx-data))
+          (if commit-succeeded?
+              (pure val)
+              (%)))))))
+  )
+
+(cl:defmacro do-run-tx (cl:&body body)
+  `(run-tx
+    (do
+     ,@body)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;     Internal & Debug Helpers      ;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(coalton-toplevel
+
+  (inline)
+  (declare tx-io!% (MonadIo :m => :m :a -> STM :m :a))
+  (define (tx-io!% io-op)
+    "Not safe to use generally. Useful for writing unit-tests,
+for purposes like writing to Var's and using MVar's to coordinate
+threads inside of transactions to simulate different concurrent
+conditions. DONT USE THIS!"
+    (STM%
+     (const (map TxSuccess io-op))))
   )

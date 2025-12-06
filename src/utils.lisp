@@ -9,6 +9,7 @@
   (:local-nicknames
    (:b #:coalton-library/bits))
   (:export
+   #:build-str
    #:UnhandledError
    #:catch-thunk
    #:force-string
@@ -28,6 +29,12 @@
 (in-package :io/utils)
 
 (named-readtables:in-readtable coalton:coalton)
+
+(cl:defmacro build-str (cl:&rest str-parts)
+  "Concatenate all STR-PARTS."
+  `(fold <> "" (make-list ,@(cl:mapcar (cl:lambda (clause)
+                                         `(as String ,clause))
+                                       str-parts))))
 
 (coalton-toplevel
   (derive Eq)

@@ -24,6 +24,7 @@
                  (:file "io-mvar")
                  (:file "io-future")
                  (:file "io-unique")
+                 (:file "io-stm")
                  (:file "io-all")
                  (:file "stubs/term")
                  )))
@@ -49,6 +50,7 @@ mutable variables, multithreading, and several data structures to safely share s
                  (:file "io-atomic")
                  (:file "mvar")
                  (:file "future")
+                 (:file "stm")
                  (:file "package"))))
   :description "Test system for coalton-io"
   :perform (test-op (op c) (symbol-call '#:coalton-io/tests '#:run-tests)))

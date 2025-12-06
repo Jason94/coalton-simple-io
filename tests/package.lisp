@@ -26,5 +26,6 @@
                #:coalton-io/tests/future-fiasco
                #:coalton-io/tests/mvar-fiasco
                #:coalton-io/tests/io-atomic-fiasco
+               #:coalton-io/tests/stm-fiasco
                )
    :interactive cl:t))

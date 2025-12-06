@@ -36,14 +36,15 @@
     a)
 
   (inline)
+  (declare set-tvar% (TVar :a -> :a -> Unit))
+  (define (set-tvar% tvar val)
+    (c:write! (unwrap-tvar% tvar) val)
+    Unit)
+
+  (inline)
   (declare tvar-value% (TVar :a -> :a))
   (define (tvar-value% tvar)
     (c:read (unwrap-tvar% tvar)))
-
-  ;; (inline)
-  ;; (declare unwrap-stm% (STM :io :a -> :io :a))
-  ;; (define (unwrap-stm% (STM% io-a))
-  ;;   io-a)
 
   ;; NOTE: For now, using the coalton-threads Atomic Integer instead of
   ;; our atomics, because it's probably faster, since our atomic type doesn't
@@ -93,19 +94,60 @@
       (cl:make-hash-table :test 'cl:eq)))
 
   (inline)
-  (declare )
+  (declare logged-write-value% (WriteHashTable% -> :a -> Optional Anything))
+  (define (logged-write-value% write-log key)
+     (lisp (Optional Anything) (write-log key)
+       (cl:multiple-value-bind (val found?) (cl:gethash key write-log)
+         (cl:if found?
+                (Some val)
+                None))))
+
+  (inline)
+  (declare log-write-value% (WriteHashTable% -> TVar :a -> :a -> Unit))
+  (define (log-write-value% write-log addr val)
+    (lisp :a (write-log addr val)
+      (cl:setf (cl:gethash write-log addr) val))
+    Unit)
+
+  (inline)
+  (declare commit-logged-writes (WriteHashTable% -> Unit))
+  (define (commit-logged-writes write-log)
+    "Actually set the TVar's value to their corresponding logged write value."
+    (lisp :a (write-log)
+      (cl:loop :for addr :being :the :hash-keys :of write-log
+         :using (hash-value value)
+         :do (call-coalton-function set-tvar% addr value))))
 
   (define-struct TxData%
     (lock-snapshot (c:cell a::Word))
-    (reads (List ReadEntry%))
-    (writes WriteHashTable%))
+    (read-log (c:cell (List ReadEntry%)))
+    (write-log WriteHashTable%))
 
   (inline)
   (declare new-tx-data% (a::Word -> TxData%))
   (define (new-tx-data% initial-snapshot)
     (TxData% (c:new initial-snapshot)
-             Nil
+             (c:new Nil)
              (new-write-hash-table%)))
+
+  (inline)
+  (declare cached-snapshot (TxData% -> a::Word))
+  (define (cached-snapshot tx-data)
+    (c:read (.lock-snapshot tx-data)))
+
+  (inline)
+  (declare log-read-value (TVar :a -> :a -> TxData% -> Unit))
+  (define (log-read-value addr val tx-data)
+    (c:push! (.read-log tx-data) (lisp ReadEntry% (addr val)
+                                   (cl:cons addr val)))
+    Unit)
+
+  (inline)
+  (declare read-only? (TxData% -> Boolean))
+  (define (read-only? tx-data)
+    (let write-log = (.write-log tx-data))
+    (lisp Boolean (write-log)
+      (cl:zerop (cl:hash-table-count write-log))))
 
   (define-type (TxResult% :a)
     (TxSuccess :a)
@@ -139,7 +181,7 @@
             (%)
         (progn
           (let check =
-            (rec %% ((rem-reads (.reads tx-data)))
+            (rec %% ((rem-reads (c:read (.read-log tx-data))))
               (match rem-reads
                 ((Nil)
                  (if (== start-time (get-global-time))
@@ -156,7 +198,55 @@
             ((Some x) x))))))
 
   (inline)
-  (declare tx-read% (MonadIo :m => TVar :a -> STM :a))
-  (define (tx-read% ))
+  (declare tx-read% (MonadIo :m => TVar :a -> STM :m :a))
+  (define (tx-read% tvar)
+    (STM%
+     (fn (tx-data)
+       (wrap-io
+         (match (logged-write-value% (.write-log tx-data) tvar)
+           ((Some val)
+            (TxSuccess (from-anything val)))
+           ((None)
+            (let validated-val =
+              (rec % ((val (tvar-value% tvar)))
+                ;; NOTE: We (probably?) don't need a memory barrier here
+                ;; because Validate() uses one anyway.
+                (if (== (cached-snapshot tx-data)
+                        (a:read global-lock))
+                    val
+                    (% (tvar-value% tvar)))))
+            (log-read-value tvar validated-val tx-data)
+            (TxSuccess validated-val)))))))
+
+  (inline)
+  (declare tx-write% (MonadIo :m => TVar :a -> :a -> STM :m Unit))
+  (define (tx-write% tvar val)
+    (STM%
+     (fn (tx-data)
+       (wrap-io
+         (TxSuccess
+          (log-write-value% (.write-log tx-data) tvar val))))))
+
+  (inline)
+  (declare tx-commit% (MonadIo :m => STM :m Unit))
+  (define tx-commit%
+    (STM%
+     (fn (tx-data)
+       (wrap-io
+         (if (read-only? tx-data)
+             (TxSuccess Unit)
+             (progn
+               (while (not (a:cas! global-lock
+                                   (c:read (.lock-snapshot tx-data))
+                                   (1+ (c:read (.lock-snapshot tx-data)))))
+                 (let validate-res = (validate% tx-data))
+                 (match validate-res
+                   ((TxContinue% time)
+                    (c:write! (.lock-snapshot tx-data) time))
+                   ((TxAbort%)
+                    (error "Implement retries!!"))))
+               (commit-logged-writes (.write-log tx-data))
+               (a:incf! global-lock 1)
+               (TxSuccess Unit)))))))
 
   )

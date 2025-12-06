@@ -33,6 +33,7 @@
 (named-readtables:in-readtable coalton:coalton)
 
 (coalton-toplevel
+  (derive Eq)
   (repr :transparent)
   (define-type (Var :a)
     (Var% (Cell :a)))

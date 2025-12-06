@@ -6,11 +6,19 @@
    #:coalton-library/system
    #:coalton-library/types
    )
+  (:local-nicknames
+   (:b #:coalton-library/bits))
   (:export
    #:UnhandledError
    #:catch-thunk
    #:force-string
    #:compose2
+   #:bit-odd?
+   #:Anything
+   #:to-anything
+   #:from-anything
+   #:from-anything-opt
+   #:anything-eq
    #:Dynamic
    #:to-dynamic
    #:cast
@@ -57,12 +65,24 @@ Coalton exceptions via `define-exception`."
   (define (proxy-outer _)
     Proxy)
 
+  (inline)
+  (declare bit-odd? (b:Bits :a => :a -> Boolean))
+  (define (bit-odd? x)
+    "Efficiently determine if x is odd."
+    (/= (b:and x 1) 0))
+
   ;;;
   ;;; Dynamic
   ;;;
 
   (repr :native cl:t)
   (define-type Anything)
+
+  (inline)
+  (declare anything-eq (Anything -> Anything -> Boolean))
+  (define (anything-eq a b)
+    (lisp Boolean (a b)
+      (cl:eq a b)))
 
   (define-type Dynamic
     (Dynamic% Anything LispType))
@@ -72,6 +92,20 @@ Coalton exceptions via `define-exception`."
   (define (to-anything a)
     (lisp Anything (a)
       a))
+
+  (inline)
+  (declare from-anything (Anything -> :a))
+  (define (from-anything a)
+    (lisp :a (a)
+      a))
+
+  (inline)
+  (declare from-anything-opt (Anything -> Optional :a))
+  (define (from-anything-opt a)
+    (lisp (Optional :a) (a)
+      (cl:if a
+             (Some a)
+             None)))
 
   (inline)
   (declare to-dynamic (RuntimeRepr :a => :a -> Dynamic))

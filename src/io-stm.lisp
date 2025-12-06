@@ -3,6 +3,7 @@
   (:use
    #:coalton
    #:coalton-prelude
+   #:coalton-library/experimental/do-control-core
    #:io/utils
    #:io/monad-io
    #:io/exception
@@ -25,6 +26,10 @@
 
 (coalton-toplevel
 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;          Main STM Types           ;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
   (derive Eq)
   (repr :transparent)
   (define-type (TVar :a)
@@ -46,21 +51,90 @@
   (define (tvar-value% tvar)
     (c:read (unwrap-tvar% tvar)))
 
-  ;; NOTE: For now, using the coalton-threads Atomic Integer instead of
-  ;; our atomics, because it's probably faster, since our atomic type doesn't
-  ;; have a way to use sb-ext:atomic-incf. BUT, the MOST important thing
-  ;; is that whatever we do use HAS to eventually call something that is
-  ;; a memory barrier in SBCL.
-  ;; https://www.sbcl.org/manual/sbcl.pdf
-  (declare global-lock a:AtomicInteger)
-  (define global-lock (a:new 0))
+  (define-type (TxResult% :a)
+    (TxSuccess :a)
+    TxFailed)
+
+  (define-instance (Functor TxResult%)
+    (inline)
+    (define (map f result)
+      (match result
+        ((TxSuccess a)
+         (TxSuccess (f a)))
+        ((TxFailed)
+         TxFailed))))
+
+  (repr :transparent)
+  (define-type (STM :io :a)
+    (STM% (TxData% -> :io (TxResult% :a))))
 
   (inline)
-  (declare get-global-time (Unit -> a::Word))
-  (define (get-global-time)
-    "Read the global lock time and establish a memory barrier."
-    (mem-barrier)
-    (a:read global-lock))
+  (declare unwrap-stm% (STM :io :a -> (TxData% -> :io (TxResult% :a))))
+  (define (unwrap-stm% (STM% f-tx))
+    f-tx)
+
+  (inline)
+  (declare run-stm% (TxData% -> STM :io :a -> :io (TxResult% :a)))
+  (define (run-stm% tx-data tx)
+    ((unwrap-stm% tx) tx-data))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;           STM Instances           ;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (define-instance (Functor :io => Functor (STM :io))
+    (inline)
+    (define (map f tx)
+      (STM%
+       (fn (tx-data)
+         (map (map f)
+              (run-stm% tx-data tx))))))
+
+  (inline)
+  (declare pure-tx% (Applicative :io => :a -> STM :io :a))
+  (define (pure-tx% val)
+    (STM%
+     (fn (_)
+       (pure (TxSuccess val)))))
+
+  (declare lifta2-tx% (Monad :io => (:a -> :b -> :c) -> STM :io :a -> STM :io :b -> STM :io :c))
+  (define (lifta2-tx% fa->b->c tx-a tx-b)
+    (STM%
+     (fn (tx-data)
+       (matchM (run-stm% tx-data tx-a)
+         ((TxFailed)
+          (pure TxFailed))
+         ((TxSuccess val-a)
+          (do-matchM (run-stm% tx-data tx-b)
+            ((TxFailed)
+             (pure TxFailed))
+            ((TxSuccess val-b)
+             (pure (TxSuccess (fa->b->c val-a val-b))))))))))
+
+  (define-instance (Monad :io => Applicative (STM :io))
+    (inline)
+    (define pure pure-tx%)
+    (define lifta2 lifta2))
+
+  (inline)
+  (declare flatmax-tx% (Monad :io => STM :io :a -> (:a -> STM :io :b) -> STM :io :b))
+  (define (flatmax-tx% tx fa->stmb)
+    (STM%
+     (fn (tx-data)
+       (matchM (run-stm% tx-data tx)
+         ((TxFailed)
+          (pure TxFailed))
+         ((TxSuccess val-a)
+          (run-stm% tx-data
+                    (fa->stmb val-a)))))))
+
+  (define-instance (Monad :io => Monad (STM :io))
+    (inline)
+    (define >>= flatmax-tx%))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;          Internal Types           ;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   (repr :native cl:cons)
   (define-type ReadEntry%)
@@ -149,13 +223,25 @@
     (lisp Boolean (write-log)
       (cl:zerop (cl:hash-table-count write-log))))
 
-  (define-type (TxResult% :a)
-    (TxSuccess :a)
-    TxFailed)
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;        STM Implementation         ;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (repr :transparent)
-  (define-type (STM :io :a)
-    (STM% (TxData% -> :io (TxResult% :a))))
+  ;; NOTE: For now, using the coalton-threads Atomic Integer instead of
+  ;; our atomics, because it's probably faster, since our atomic type doesn't
+  ;; have a way to use sb-ext:atomic-incf. BUT, the MOST important thing
+  ;; is that whatever we do use HAS to eventually call something that is
+  ;; a memory barrier in SBCL.
+  ;; https://www.sbcl.org/manual/sbcl.pdf
+  (declare global-lock a:AtomicInteger)
+  (define global-lock (a:new 0))
+
+  (inline)
+  (declare get-global-time (Unit -> a::Word))
+  (define (get-global-time)
+    "Read the global lock time and establish a memory barrier."
+    (mem-barrier)
+    (a:read global-lock))
 
   (inline)
   (declare tx-begin-io% (MonadIo :m => Unit -> :m TxData%))

@@ -102,7 +102,7 @@ True if the put succeeds."
 If the operation raises an exception, will restore the MVar value and re-raise.
 If other threads are calling PUT-MVAR while the operation is running,
 they can block this thread until another thread takes the MVar."
-     ((UnliftIo :r :i) (LiftTo :r :m) (MonadIoException :i)
+     ((UnliftIo :r :i) (LiftTo :r :m) (MonadException :i)
       => MVar :a -> (:a -> :r :b) -> :m :b)))
 
   (inline)
@@ -236,7 +236,7 @@ they can block this thread until another thread takes the MVar."
       (lk:release (.lock mvar))
       result))
 
-  (declare with-mvar% ((MonadIo :m) (UnliftIo :r :i) (LiftTo :r :m) (MonadIoException :i)
+  (declare with-mvar% ((MonadIo :m) (UnliftIo :r :i) (LiftTo :r :m) (MonadException :i)
                        => MVar :a -> (:a -> :r :b) -> :m :b))
   (define (with-mvar% mvar op)
     (lift-to

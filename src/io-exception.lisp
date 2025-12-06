@@ -16,7 +16,7 @@
    (:st #:coalton-library/monad/statet)
    (:e #:coalton-library/monad/environment))
   (:export
-   #:MonadIoException
+   #:MonadException
    #:raise
    #:raise-dynamic
    #:reraise
@@ -30,6 +30,7 @@
    #:do-handle-all
 
    #:raise-result
+   #:raise-result-dynamic
    ;; Re-export for convenience
    #:UnhandledError
    ))
@@ -48,11 +49,11 @@
 
   ;; NOTE: The second argument for several of these could be :m :a. Wrapping
   ;; in a function call allows transformer instances to avoid running-down
-  ;; to the base MonadIoException layer in the stack, even if no
+  ;; to the base MonadException layer in the stack, even if no
   ;; exceptions are raised. The alternative is to limit those functions to
   ;; just instances of UnliftIo.
-  (define-class (MonadIo :m => MonadIoException :m)
-    "A MonadIo that can raise and handle exceptions. IMPORTANT: Any MonadIoException
+  (define-class (Monad :m => MonadException :m)
+    "A Monad that can raise and handle exceptions. IMPORTANT: Any MonadException
 must catch and wrap all unhandled errors inside a wrap-io call as an UnhandledError.
 See utils/catch-thunk."
     (raise
@@ -79,7 +80,7 @@ that matches :e."
      (:m :a -> :m (Result Dynamic :a))))
 
   (inline)
-  (declare try ((MonadIoException :m) (RuntimeRepr :e) => :m :a -> :m (Result :e :a)))
+  (declare try ((MonadException :m) (RuntimeRepr :e) => :m :a -> :m (Result :e :a)))
   (define (try op)
      "Bring any unhandled exceptions of type :e up into a Result.
 Continues to carry any unhandeld exceptions not of type :e."
@@ -88,7 +89,7 @@ Continues to carry any unhandeld exceptions not of type :e."
      (compose pure Err)))
 
   (inline)
-  (declare try-all (MonadIoException :m => :m :a -> :m (Optional :a)))
+  (declare try-all (MonadException :m => :m :a -> :m (Optional :a)))
   (define (try-all op)
     "Bring the result of OP up into an Optional. Returns None if OP
 raised any exceptions."
@@ -97,7 +98,7 @@ raised any exceptions."
      (const (pure None))))
 
   (inline)
-  (declare raise-result ((MonadIoException :m) (RuntimeRepr :e) (Signalable :e)
+  (declare raise-result ((MonadException :m) (RuntimeRepr :e) (Signalable :e)
                          => :m (Result :e :a) -> :m :a))
   (define (raise-result io-res)
     "Raise any (Err :e) into :m. Useful if (Err :e) represents any unhandleable, fatal
@@ -107,6 +108,15 @@ exception to the program."
        (pure a))
       ((Err e)
        (raise e))))
+
+  (inline)
+  (declare raise-result-dynamic (MonadException :m => :m (Result Dynamic :a) -> :m :a))
+  (define (raise-result-dynamic op)
+    (matchM op
+      ((Ok a)
+       (pure a))
+      ((Err dyn-e)
+       (raise-dynamic dyn-e))))
   )
 
 (cl:defmacro do-reraise (op cl:&body body)
@@ -150,7 +160,7 @@ Example:
 (coalton-toplevel
 
   (inline)
-  (declare handle-stateT ((MonadIoException :m) (RuntimeRepr :e)
+  (declare handle-stateT ((MonadException :m) (RuntimeRepr :e)
                           => st:StateT :s :m :a -> (:e -> st:StateT :s :m :a)
                           -> st:StateT :s :m :a))
   (define (handle-stateT st-op st-handle-op)
@@ -164,7 +174,7 @@ Example:
            s))))))
 
   (inline)
-  (declare handle-all-stateT (MonadIoException :m
+  (declare handle-all-stateT (MonadException :m
                               => st:StateT :s :m :a -> (Unit -> st:StateT :s :m :a)
                               -> st:StateT :s :m :a))
   (define (handle-all-stateT st-op st-handle-op)
@@ -176,7 +186,7 @@ Example:
          (st:run-stateT (st-handle-op) s))))))
 
   (inline)
-  (declare reraise-stateT (MonadIoException :m
+  (declare reraise-stateT (MonadException :m
                            => st:StateT :s :m :a
                            -> (Unit -> st:StateT :s :m :b)
                            -> st:StateT :s :m :a))
@@ -189,7 +199,7 @@ Example:
           (st:run-stateT (st-catch-op) s))))))
 
   (inline)
-  (declare try-dynamic-stateT (MonadIoException :m
+  (declare try-dynamic-stateT (MonadException :m
                                => st:StateT :s :m :a
                                -> st:StateT :s :m (Result Dynamic :a)))
   (define (try-dynamic-stateT st-op)
@@ -204,7 +214,7 @@ Example:
          ((Err dyn-e)
           (pure (Tuple s (Err dyn-e))))))))
 
-  (define-instance (MonadIoException :m => MonadIoException (st:StateT :s :m))
+  (define-instance (MonadException :m => MonadException (st:StateT :s :m))
     (define raise (compose lift raise))
     (define raise-dynamic (compose lift raise-dynamic))
     (define reraise reraise-stateT)
@@ -213,7 +223,7 @@ Example:
     (define try-dynamic try-dynamic-stateT))
 
   (inline)
-  (declare handle-envT ((MonadIoException :m) (RuntimeRepr :err)
+  (declare handle-envT ((MonadException :m) (RuntimeRepr :err)
                         => e:EnvT :e :m :a -> (:err -> e:EnvT :e :m :a)
                         -> e:EnvT :e :m :a))
   (define (handle-envT env-op env-handle-op)
@@ -227,7 +237,7 @@ Example:
            env))))))
 
   (inline)
-  (declare handle-all-envT (MonadIoException :m
+  (declare handle-all-envT (MonadException :m
                             => e:EnvT :e :m :a -> (Unit -> e:EnvT :e :m :a)
                             -> e:EnvT :e :m :a))
   (define (handle-all-envT env-op env-handle-op)
@@ -241,7 +251,7 @@ Example:
            env))))))
 
   (inline)
-  (declare reraise-envT (MonadIoException :m
+  (declare reraise-envT (MonadException :m
                             => e:EnvT :e :m :a -> (Unit -> e:EnvT :e :m :b)
                             -> e:EnvT :e :m :a))
   (define (reraise-envT env-op env-handle-op)
@@ -255,7 +265,7 @@ Example:
            env))))))
 
   (inline)
-  (declare try-dynamic-envT (MonadIoException :m
+  (declare try-dynamic-envT (MonadException :m
                              => e:EnvT :e :m :a
                              -> e:EnvT :e :m (Result Dynamic :a)))
   (define (try-dynamic-envT env-op)
@@ -270,7 +280,7 @@ Example:
          ((Err dyn-e)
           (pure (Err dyn-e)))))))
 
-  (define-instance (MonadIoException :m => MonadIoException (e:EnvT :e :m))
+  (define-instance (MonadException :m => MonadException (e:EnvT :e :m))
     (define raise (compose lift raise))
     (define raise-dynamic (compose lift raise-dynamic))
     (define reraise reraise-envT)
@@ -286,7 +296,7 @@ Example:
 ;;;
 
 (coalton-toplevel
-  (define-instance (MonadIoException io:IO)
+  (define-instance (MonadException io:IO)
     (define raise io:raise-io)
     (define raise-dynamic io:raise-dynamic-io)
     (define reraise io:reraise-io)

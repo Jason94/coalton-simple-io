@@ -44,7 +44,7 @@
     mvar)
 
   (declare fork-future_ ((MonadIoThread :m) (MonadIoMVar :m) (MonadIoMVar :r)
-                         (UnliftIo :r :i) (LiftTo :r :m) (MonadIoException :r)
+                         (UnliftIo :r :i) (LiftTo :r :m) (MonadException :r)
                          => :r :a -> :m (Future :a)))
   (define (fork-future_ task)
     "Spawn a new future, which will run and eventually return the result
@@ -66,7 +66,7 @@ the produced :m is run."
     fork-future_)
 
   (inline)
-  (declare await ((MonadIoMVar :m) (MonadIoException :m) => Future :a -> :m :a))
+  (declare await ((MonadIoMVar :m) (MonadException :m) => Future :a -> :m :a))
   (define (await future)
     "Read the value from FUTURE, blocking until it is available.
 Raises any exceptions in the awaiting thread that were raised in
@@ -78,7 +78,7 @@ the future thread."
        (raise-dynamic dyn-e))))
 
   (inline)
-  (declare try-read-future ((MonadIoMvar :m) (MonadIoException :m)
+  (declare try-read-future ((MonadIoMvar :m) (MonadException :m)
                             => Future :a -> :m (Optional :a)))
   (define (try-read-future future)
     "Try to read the current value from FUTURE, returning NONE

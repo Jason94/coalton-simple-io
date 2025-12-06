@@ -80,6 +80,40 @@
       (run-tx (read-tvar x)))))
   (is (== 1 result)))
 
+(define-test test-exception-aborts-transaction ()
+  (let result =
+    (run-io!
+     (do
+      (a <- (new-tvar 0))
+      (result1 <-
+       (try-all
+        (do-run-tx
+          (write-tvar a 100)
+          (raise "Raising exception after write")
+          (read-tvar a))))
+      (result2 <- (run-tx (read-tvar a)))
+      (pure (Tuple result1 result2)))))
+  (is (== (Tuple None 0)
+          result)))
+
+;; (define-test test-unwrapped-coalton-error-aborts-transaction ()
+;;   (let result =
+;;     (run-io!
+;;      (do
+;;       (a <- (new-tvar 0))
+;;       (result1 <-
+;;        (try-all
+;;         (do-run-tx
+;;           (write-tvar a 10)
+;;           (write-tvar a (progn
+;;                           (error "Unwrapped coalton Error!")
+;;                           100))
+;;           (read-tvar a))))
+;;       (result2 <- (run-tx (read-tvar a)))
+;;       (pure (Tuple result1 result2)))))
+;;   (is (== (Tuple None 0)
+;;           result)))
+
 ;;;
 ;;; Multi-threaded tests
 ;;;

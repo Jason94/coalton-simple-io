@@ -371,7 +371,7 @@ Example:
 (coalton-toplevel
 
   (declare with-open-file_ ((file:File :a) (MonadIoFile :r) (MonadIoFile :i) (UnliftIo :r :i)
-                            (LiftTo :r :m) (MonadIoException :i)
+                            (LiftTo :r :m) (MonadException :i)
                             => file:StreamOptions
                             -> ((file:FileStream :a) -> :r :b)
                             -> :m :b))
@@ -390,7 +390,7 @@ in some cases. Try WITH-OPEN-FILE if you have issues."
                            (run (k file)))))))))
 
   (declare with-temp-file_ ((file:File :a) (MonadIoFile :r) (MonadIoFile :i)
-                            (UnliftIo :r :i) (LiftTo :r :m) (MonadIoException :i)
+                            (UnliftIo :r :i) (LiftTo :r :m) (MonadException :i)
                             => String
                             -> ((file:FileStream :a) -> :r :b)
                             -> :m :b))
@@ -409,7 +409,7 @@ in some cases. Try WITH-TEMP-FILE if you have issues."
                            (fn (file)
                              (run (k file))))))))))
 
-  (declare with-temp-directory_ ((UnliftIo :r :i) (LiftTo :r :m) (MonadIoException :i)
+  (declare with-temp-directory_ ((UnliftIo :r :i) (LiftTo :r :m) (MonadException :i)
                                  (MonadIoFile :i)
                                  => (file:Pathname -> :r :a)
                                  -> :m :a))

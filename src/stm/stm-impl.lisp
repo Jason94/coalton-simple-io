@@ -72,6 +72,17 @@
         ((TxFailed)
          TxFailed))))
 
+  (repr :native cl:cons)
+  (define-type ReadEntry%)
+
+  (repr :native cl:hash-table)
+  (define-type WriteHashTable%)
+
+  (define-struct TxData%
+    (lock-snapshot (c:cell a::Word))
+    (read-log (c:cell (List ReadEntry%)))
+    (write-log WriteHashTable%))
+
   (repr :transparent)
   (define-type (STM :io :a)
     (STM% (TxData% -> :io (TxResult% :a))))
@@ -85,7 +96,33 @@
   (declare run-stm% (TxData% -> STM :io :a -> :io (TxResult% :a)))
   (define (run-stm% tx-data tx)
     ((unwrap-stm% tx) tx-data))
+  )
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;     Internal & Debug Helpers      ;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(coalton-toplevel
+  (inline)
+  (declare tx-const-io!% (MonadIo :m => :m (TxResult% :a) -> STM :m :a))
+  (define (tx-const-io!% io-op)
+    (STM%
+     (fn (_)
+       io-op)))
+
+  (inline)
+  (declare tx-io!% (MonadIo :m => :m :a -> STM :m :a))
+  (define (tx-io!% io-op)
+    "Not safe to use generally. Useful for writing unit-tests,
+for purposes like writing to Var's and using MVar's to coordinate
+threads inside of transactions to simulate different concurrent
+conditions. DONT USE THIS!"
+    (STM%
+     (fn (_)
+       (map TxSuccess io-op))))
+  )
+
+(coalton-toplevel
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;           STM Instances           ;;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -140,12 +177,50 @@
     (inline)
     (define >>= flatmax-tx%))
 
+  (define-instance ((MonadException :io) (MonadIo :io) => MonadException (STM :io))
+    (inline)
+    (define (raise e)
+      (tx-const-io!% (raise e)))
+    (inline)
+    (define (raise-dynamic dyn-e)
+      (tx-const-io!% (raise-dynamic dyn-e)))
+    (inline)
+    (define (reraise tx catch-tx)
+     (STM%
+      (fn (tx-data)
+        (reraise (run-stm% tx-data tx)
+                 (map (run-stm% tx-data) catch-tx)))))
+    (inline)
+    (define (handle tx catch-tx)
+      (STM%
+       (fn (tx-data)
+         (handle (run-stm% tx-data tx)
+                 (map (run-stm% tx-data) catch-tx)))))
+    (inline)
+    (define (handle-all tx catch-tx)
+      (STM%
+       (fn (tx-data)
+         (handle-all (run-stm% tx-data tx)
+                     (map (run-stm% tx-data) catch-tx)))))
+    (inline)
+    (define (try-dynamic tx)
+      (STM%
+       (fn (tx-data)
+         (map (fn (dyn-result--tx-result)
+                (match dyn-result--tx-result
+                  ((Err dyn-e)
+                   (TxSuccess (Err dyn-e)))
+                  ((Ok tx-result)
+                   (match tx-result
+                     ((TxFailed)
+                      TxFailed)
+                     ((TxSuccess val)
+                      (TxSuccess (Ok val)))))))
+              (try-dynamic (run-stm% tx-data tx)))))))
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;          Internal Types           ;;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  (repr :native cl:cons)
-  (define-type ReadEntry%)
 
   (inline)
   (declare read-entry-addr% (ReadEntry% -> Anything))
@@ -165,9 +240,6 @@
   (define (read-entry-cached-val% entr)
     (lisp Anything (entr)
       (cl:cdr entr)))
-
-  (repr :native cl:hash-table)
-  (define-type WriteHashTable%)
 
   (inline)
   (declare new-write-hash-table% (Unit -> WriteHashTable%))
@@ -199,11 +271,6 @@
       (cl:loop :for addr :being :the :hash-keys :of write-log
          :using (hash-value value)
          :do (call-coalton-function set-tvar% addr value))))
-
-  (define-struct TxData%
-    (lock-snapshot (c:cell a::Word))
-    (read-log (c:cell (List ReadEntry%)))
-    (write-log WriteHashTable%))
 
   (inline)
   (declare new-tx-data% (a::Word -> TxData%))
@@ -366,7 +433,7 @@
       (wrap-io
         TxFailed))))
 
-  (declare run-tx% (MonadIo :m => STM :m :a -> :m :a))
+  (declare run-tx% ((MonadIo :m) (MonadException :m) => STM :m :a -> :m :a))
   (define (run-tx% tx)
     (rec % ()
       (do
@@ -379,21 +446,4 @@
           (if commit-succeeded?
               (pure val)
               (%)))))))
-  )
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;     Internal & Debug Helpers      ;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(coalton-toplevel
-
-  (inline)
-  (declare tx-io!% (MonadIo :m => :m :a -> STM :m :a))
-  (define (tx-io!% io-op)
-    "Not safe to use generally. Useful for writing unit-tests,
-for purposes like writing to Var's and using MVar's to coordinate
-threads inside of transactions to simulate different concurrent
-conditions. DONT USE THIS!"
-    (STM%
-     (const (map TxSuccess io-op))))
   )

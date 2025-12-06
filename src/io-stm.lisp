@@ -57,7 +57,8 @@
      "Retry the current operation because the observed state is invalid."
      (STM :m :a))
     (run-tx
-     "Run an atomic transaction."
+     "Run an atomic transaction. If the transaction raises an exception,
+the transaction is aborted and the exception is re-raised."
      (STM :m :a -> :m :a)))
   )
 
@@ -73,8 +74,6 @@
   (implement-monad-io-stm io:IO))
 
 ;; NOTE: All of these functions except new-tvar could be outside of the typeclass.
-;; But this allows someone to have a completely different STM implementatino and
-;; still use the same interface.
 (cl:defmacro derive-monad-io-stm (monad-param monadT-form)
   "Automatically derive an instance of MonadIoSTM for a monad transformer.
 

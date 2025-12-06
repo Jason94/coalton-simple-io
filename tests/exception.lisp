@@ -52,6 +52,30 @@
      (try (raise-io_ (TE "Error!")))))
   (is (== (Err (TE "Error!")) result)))
 
+(define-test test-wrap-error-coalton-error ()
+  (let result =
+    (run-io!
+     (try-all (wrap-error
+               (error "Unhandled Coalton error!")
+               1))))
+  (is (== None result)))
+
+(define-test test-wrap-error-lisp-error ()
+  (let result =
+    (run-io!
+     (try-all (wrap-error
+               (lisp Void ()
+                 (cl:error "Unhandled lisp error!"))
+               1))))
+  (is (== None result)))
+
+(define-test test-wrap-error-success ()
+  (let result =
+    (run-io!
+     (try-all (wrap-error
+               1))))
+  (is (== (Some 1) result)))
+
 ;;;
 ;;; StateT instance tests
 ;;;

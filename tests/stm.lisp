@@ -96,23 +96,24 @@
   (is (== (Tuple None 0)
           result)))
 
-;; (define-test test-unwrapped-coalton-error-aborts-transaction ()
-;;   (let result =
-;;     (run-io!
-;;      (do
-;;       (a <- (new-tvar 0))
-;;       (result1 <-
-;;        (try-all
-;;         (do-run-tx
-;;           (write-tvar a 10)
-;;           (write-tvar a (progn
-;;                           (error "Unwrapped coalton Error!")
-;;                           100))
-;;           (read-tvar a))))
-;;       (result2 <- (run-tx (read-tvar a)))
-;;       (pure (Tuple result1 result2)))))
-;;   (is (== (Tuple None 0)
-;;           result)))
+(define-test test-tx-wrap-error ()
+  (let result =
+    (run-io!
+     (do
+      (a <- (new-tvar 0))
+      (result1 <-
+       (try-all
+        (do-run-tx
+          (write-tvar a 10)
+          (next-val <- (wrap-error
+                         (error "Coalton error!")
+                         100))
+          (write-tvar a next-val)
+          (read-tvar a))))
+      (result2 <- (run-tx (read-tvar a)))
+      (pure (Tuple result1 result2)))))
+  (is (== (Tuple None 0)
+          result)))
 
 ;;;
 ;;; Multi-threaded tests
